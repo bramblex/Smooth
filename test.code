@@ -1,0 +1,5 @@
+#this is comments
+func a b c :=
+  abc def bcd
+
+a := 123 'aa\"\ndf' #this is comments

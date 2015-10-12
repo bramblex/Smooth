@@ -1,0 +1,99 @@
+define(['./Class'], function(Class){
+
+  var Token = Class('Token', Object)
+    .method('constructor', function(type, content, position){
+      this.type = type;
+      if (content){
+        this.content = content;
+      }
+
+      this.position = {};
+      this.position.offset = position.offset;
+      this.position.line_nu = position.line_nu;
+      this.position.char_nu = position.char_nu;
+    })
+    .method('equal', function equal(token){
+      return (this.type === token.type) && (this.content === token.content);
+    })
+    .method('isType', function isType(token){
+      return this.type === token.type;
+    })
+    .method('isContent', function isType(token){
+      return this.content === token.content;
+    })
+    .method('inspect', '*', function inspect(){
+      var pair = function(string){return '('+string+')';};
+      return [this.type.slice(0,2), pair(this.content)].join('#');
+    });
+
+  Token.IdentifierToken = Class('IdentifierToken', Token)
+    .method('constructor', function(content, position){
+      Token
+        .apply(this, ['Identifier', content, position]);
+    });
+
+  Token.SymbolToken = Class('SymbolToken', Token)
+    .method('constructor', function(content, position){
+      Token
+        .apply(this, ['Symbol', content, position]);
+    });
+
+  Token.SpaceToken = Class('SpaceToken', Token)
+    .method('constructor', function(content, position){
+      Token
+        .apply(this, ['Space', content, position]);
+    });
+
+  Token.LiteralToken = Class('LiteralToken', Token)
+    .method('constructor', function(content_type, content, position){
+      Token
+        .apply(this, ['Literal', content, position]);
+      this.content_type = content_type;
+    })
+    .method('equal', function equal(token){
+      return (this.type === token.type) 
+        && (this.content_type === token.content_type)
+        && (this.content === token.content);
+    })
+    .method('inspect', '*', function (){
+      var pair = function(string){return '('+string+')';};
+
+      return [this.content_type.slice(0,3),
+        pair(JSON.stringify(this.content))].join('#');
+    });
+
+  Token.EOLToken = Class('EOLToken', Token)
+    .method('constructor', function(position){
+      Token
+        .apply(this, ['EOL', undefined, position]);
+    })
+    .method('equal', function equal(token){
+      return (this.type === token.type)
+    })
+    .method('inspect', '*', function (){
+      return 'EOL';
+    });
+
+
+  Token.EOFToken = Class('EOFToken', Token)
+    .method('constructor', function(position){
+      Token
+        .apply(this, ['EOF', undefined, position]);
+    })
+    .method('inspect', '*', function (){
+      return 'EOF';
+    });
+
+  Token.EmptyToken = Class('EmptyToken', Token)
+    .method('constructor', function(position){
+      Token
+        .apply(this, ['Empty', undefined, position]);
+    })
+    .method('inspect', '*', function (){
+      return 'Empty';
+    });
+
+  Token.fack_position = {offset:0, line_nu:0, char_nu:0,};
+
+  return Token;
+});
