@@ -30,6 +30,10 @@ var compare = function(a){
   }
 };
 
+var not = function(a){
+  return !a;
+};
+
 var print = function(a){
   console.log(a);
 };
