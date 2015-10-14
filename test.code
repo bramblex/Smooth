@@ -1,29 +1,17 @@
-# this is comments
 
-#a := 1
-#b := 2
-
-#if compare b (add a a)
-    #print ('b 和 a+a 相等')
-
-#func c :=
-    #d := add (add a b) c
-    #a = 100
-    #return d
-
-#print (func 3)
-#print a
-
-
+# 这里几乎演示了所有语法规则了，非常简单。
+# 唯一需要注意的是赋值符号有 = 和 := 之分。
 print '====================================='
+
 fact n :=
     if compare n 1
-        return 1
+        return 1 #返回
     return mult n (fact (sub n 1))
 
 print (fact 5)
 
 print '====================================='
+
 loop n :=
     while not (compare n 0) 
         print n
@@ -31,8 +19,10 @@ loop n :=
 loop 10
 
 print '====================================='
+
 func a b c :=
     return add (add a b) c
+
 func1 := func 1
 func2 := func1 2
 func3 := func2 3

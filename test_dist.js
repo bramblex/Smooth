@@ -44,7 +44,7 @@ var print = function(a) {
                 if (compare(n)(1)) {
                     return (1)
                 };
-                return (mult(n)(fact(sub(n)(1))))
+                return (mult)(n)(fact(sub(n)(1)))
             }
         }
     })();
@@ -67,7 +67,7 @@ var print = function(a) {
             return function(b) {
                 return function(c) {
                     {
-                        return (add(add(a)(b))(c))
+                        return (add)(add(a)(b))(c)
                     }
                 }
             }
