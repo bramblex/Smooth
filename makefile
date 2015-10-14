@@ -23,3 +23,7 @@ clean:
 .PHONY: test
 test: all
 	node dist/Main.js
+
+.PHONY: run
+run: test
+	node ./test_dist.js

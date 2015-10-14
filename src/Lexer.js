@@ -122,17 +122,24 @@ define(['./Class', './Token'], function(Class, Token){
     var l = length;
 
     var operator_list = '`~!@$%^&*()-+=[]{}\\|:;<>,./?';
+    var single_list = '()[]{}';
     if (operator_list.indexOf(stream[i]) < 0){
       return false;
     }
-    for (var j=i; j<l; j++){
-      if (operator_list.indexOf(stream[j]) >= 0){
-        continue;
+
+    if (single_list.indexOf(stream[i]) > 0 ){
+      var j=i+1;
+    }
+    else{
+      for (var j=i; j<l; j++){
+        if (operator_list.indexOf(stream[j]) >= 0){
+          continue;
+        }
+        else{
+          break;
+        }
+
       }
-      else{
-        break;
-      }
-      
     }
 
     var token = Token.SymbolToken(stream.slice(i, j), position);

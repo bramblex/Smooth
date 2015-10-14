@@ -209,34 +209,47 @@ define(['./Class', './Token', './AST'], function(Class, Token, ASTNode){
     });
 
 
-  var if_token = Token.IdentifierToken('if', Token.fack_position);
-  var while_token = Token.IdentifierToken('while', Token.fack_position);
-  var assignment_symbol  = Token.SymbolToken(':=', Token.fack_position);
 
-  var parse = function parse(item){
-    if (item instanceof Block){
-      return statementsListParse(item);
-    }
-    else if (item instanceof Line){
+  var parse = (function(){
+    var if_token = Token.IdentifierToken('if', Token.fack_position);
+    var while_token = Token.IdentifierToken('while', Token.fack_position);
+    var assignment_and_create_symbol  = Token.SymbolToken(':=', Token.fack_position);
+    var assignment_symbol  = Token.SymbolToken('=', Token.fack_position);
 
-      if (assignment_symbol.equal(item.scd())){
-        return assignmentParse(item);
+    return function parse(item){
+      if (item instanceof Block){
+        return statementsListParse(item);
       }
-      else{
-        return expressionParse(item);
+      else if (item instanceof Line){
+
+        if (assignment_symbol.equal(item.lst()) || assignment_and_create_symbol.equal(item.lst())){
+          return functionDefineParse(item);
+        }
+        else if (assignment_symbol.equal(item.scd()) || assignment_and_create_symbol.equal(item.scd())){
+          return assignmentParse(item);
+        }
+        else if (if_token.equal(item.fst())){
+          return ifStatementsParse(item);
+        }
+        else if (while_token.equal(item.fst())){
+          return whileStatementsParse(item);
+        }
+        else{
+          return expressionParse(item);
+        }
       }
-    }
-    else {
-      throw Error(JSON.stringify(item));
-    }
-  };
+      else {
+        throw Error(JSON.stringify(item));
+      }
+    };
+  })();
 
   var assignmentParse = function assignmentParse(line){
-    return ASTNode.AssignmentStatement(line[0], expressionParse(line.slice(2)));
+    return ASTNode.AssignmentStatement(line.scd(), line.fst(), expressionParse(line.slice(2)));
   };
 
   var functionDefineParse = function functionDefineParse(line){
-    return ASTNode.FunctionDefineStatement(line[0], line.slice(1, -1), parse(line.succeed_statements_list));
+    return ASTNode.FunctionDefineStatement(line.lst(), line.fst(), line.slice(1, -1), line.succeed_statements_list);
   };
 
   var expressionParse = (function(){
@@ -258,13 +271,13 @@ define(['./Class', './Token', './AST'], function(Class, Token, ASTNode){
           throw ParserError(item.getPosition());
         }
         else{
-          var i=item.length-1;
 
           if (id.isType(item.lst()) || lit.isType(item.lst())){
             return ASTNode.Expression(
               expressionParse(item.slice(0, -1)), expressionParse(item.lst()));
           }
 
+          var i=item.length-1;
           var right_count=0;
           for(i; i>=0; i--){
             var token = item[i];
@@ -282,8 +295,8 @@ define(['./Class', './Token', './AST'], function(Class, Token, ASTNode){
                     expressionParse(item.slice(0, i)), expressionParse(item.slice(i+1, -1)));
                 }
               }
-              else if (left_count < 0){
-                throw arserError(token.getPosition());
+              else if (right_count < 0){
+                throw ParserError(token.getPosition());
               }
             }
           }
@@ -297,11 +310,11 @@ define(['./Class', './Token', './AST'], function(Class, Token, ASTNode){
   })();
 
   var whileStatementsParse = function whileStatementsParse(line){
-    return ASTNode.whileStatementsParse(expressionParse(line.slice(1)), parse(line.succeed_statements_list));
+    return ASTNode.WhileLoopStatement(expressionParse(line.slice(1)), line.succeed_statements_list);
   };
 
   var ifStatementsParse = function ifStatementsParse(line){
-    return ASTNode.IfElseStatement(expressionParse(line.slice(1)), parse(line.succeed_statements_list));
+    return ASTNode.IfStatement(expressionParse(line.slice(1)), line.succeed_statements_list);
   };
 
   var statementsListParse = function statementsListParse(block){

@@ -1,16 +1,24 @@
-#this is comments
-#func a b c :=
-    #abc def bcd
+# this is comments
 
-#if compare a b
-    #aaa bbb ccc ddd
-        #bbb ccc ddd
+#a := 1
+#b := 2
 
-#a := 123 'aa\"\ndf' #this is comments
-#
+#if compare b (add a a)
+    #print ('b 和 a+a 相等')
+
+#func c :=
+    #d := add (add a b) c
+    #a = 100
+    #return d
+
+#print (func 3)
+#print a
 
 
-aaa := bbb ccc ddd
-aaa bbb (ccc 'aaa') (aaa)
-eee fff dddl
+fact n :=
+    print n
+    if compare n 1
+        return 1
+    return mult n (fact (sub n 1))
 
+print (fact 5)

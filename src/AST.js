@@ -2,7 +2,7 @@ define(['./Class', './Token'], function(Class, Token){
   
   var indent_str = function(n){
     var str = '';
-    for (var i=0; i<n*2; i++){
+    for (var i=0; i<n; i++){
       str = str + ' ';
     }
     return str;
@@ -22,23 +22,117 @@ define(['./Class', './Token'], function(Class, Token){
     var reslut = '';
     for (var i=0; i<this.content.length; i++){
       var statement = this.content[i];
-      reslut = reslut + indent_str(indent) + statement.inspect(indent+1) + '\n';
+      reslut = reslut + indent_str(indent) + statement.inspect(indent+2) + '\n';
     }
-    return reslut;
+    return reslut.slice(0, -1);
+  })
+  .method('toJavaScript', function(){
+    return '{' +this.content.map(function(s){return s.toJavaScript()}).join(';') + '}';
   });
 
+  var assignment_and_create_symbol  = Token.SymbolToken(':=', Token.fack_position);
+  var assignment_symbol  = Token.SymbolToken('=', Token.fack_position);
   ASTNode.AssignmentStatement = Class('AssignmentStatement', ASTNode)
-    .method('constructor', function(left, right){
+    .method('constructor', function(symbol, left, right){
+      if (assignment_and_create_symbol.equal(symbol)){
+        this.type = 'assignment_and_create';
+      }
+      else if (assignment_symbol.equal(symbol)){
+        this.type = 'assignment';
+      }
       this.left = left;
       this.right = right;
     })
     .method('inspect', '*', function(){
-      return this.left.inspect() + ' := ' + this.right.inspect();
+      if (this.type === 'assignment'){
+        return this.left.inspect() + ' = ' + this.right.inspect();
+      }
+      else if(this.type === 'assignment_and_create'){
+        return this.left.inspect() + ' := ' + this.right.inspect();
+      }
+    })
+    .method('toJavaScript', function(){
+      if (this.type === 'assignment'){
+        return this.left.toJavaScript() + '=' + this.right.toJavaScript();
+      }
+      else if(this.type === 'assignment_and_create'){
+        return 'var ' + this.left.toJavaScript() + '=' + this.right.toJavaScript();
+      }
     });
 
-  ASTNode.IfStatement = Class('IfStatement', ASTNode);
-  ASTNode.WhileLoopStatement = Class('WhileLoopStatement', ASTNode);
-  ASTNode.FunctionDefineStatement = Class('FunctionDefineStatement', ASTNode);
+  ASTNode.IfStatement = Class('IfStatement', ASTNode)
+    .method('constructor', function(condition, statements_list){
+      this.condition = condition;
+      this.statements_list = statements_list;
+    })
+    .method('inspect', '*', function(indent){
+      return 'if ' + this.condition.inspect() + '\n' + this.statements_list.inspect(indent);
+    })
+    .method('toJavaScript', function(){
+      return 'if (' + this.condition.toJavaScript() + ')' + this.statements_list.toJavaScript();
+    });
+
+  ASTNode.WhileLoopStatement = Class('WhileLoopStatement', ASTNode)
+    .method('constructor', function(condition, statements_list){
+      this.condition = condition;
+      this.statements_list = statements_list;
+    })
+    .method('inspect', '*', function(indent){
+      return 'while ' + this.condition.inspect() + '\n' + this.statements_list.inspect(indent);
+    })
+    .method('toJavaScript', function(){
+      return 'while (' + this.condition.toJavaScript() + ')' + this.statements_list.toJavaScript();
+    });
+
+
+  ASTNode.FunctionDefineStatement = Class('FunctionDefineStatement', ASTNode)
+    .method('constructor', function(symbol, name, argv, statements_list){
+      if (assignment_and_create_symbol.equal(symbol)){
+        this.type = 'assignment_and_create';
+      }
+      else if (assignment_symbol.equal(symbol)){
+        this.type = 'assignment';
+      }
+      this.name = name;
+      this.argv = argv;
+      this.statements_list = statements_list;
+    })
+    .method('inspect', '*', function(indent){
+      if (this.type === 'assignment'){
+        var s = '=';
+      }
+      else if(this.type === 'assignment_and_create'){
+        var s = ':=';
+      }
+      var reslut = '';
+      reslut = reslut + this.name.inspect() + ' ';
+      reslut = reslut + this.argv.map(function(t){return t.inspect()}).join(' ') + ' ' + s + '\n';
+      reslut = reslut + this.statements_list.inspect(indent);
+      return reslut;
+    })
+    .method('toJavaScript', function(){
+      if (this.type === 'assignment'){
+        var s = '';
+      }
+      else if(this.type === 'assignment_and_create'){
+        var s = 'var';
+      }
+
+      var func_body = this.statements_list.toJavaScript();
+
+      if (this.argv.length > 0){
+        this.argv.slice().reverse()
+        .map(function(t){return t.content})
+        .forEach(function(arg){
+          func_body = 'return function(' + arg + '){' + func_body + '}';
+        });
+      }
+      else {
+        func_body = 'return function(){' + func_body + '}';
+      }
+
+      return s + ' ' + this.name.toJavaScript() +'='+ '(function(){ ' + func_body + '})()';
+    });
 
   ASTNode.Expression = Class('Expression', ASTNode)
     .method('constructor', function(token){
@@ -51,12 +145,19 @@ define(['./Class', './Token'], function(Class, Token){
       this.right = right;
     })
     .method('inspect', '*', function(){
-      var indent = indent || 0;
       if (this.type === 'Val'){
         return this.token.inspect();
       }
       else if (this.type === 'Expr'){
         return '(' + this.left.inspect() + ' ' + this.right.inspect()+ ')' 
+      }
+    })
+    .method('toJavaScript', function(){
+      if (this.type === 'Val'){
+        return this.token.toJavaScript();
+      }
+      else if (this.type === 'Expr'){
+        return this.left.toJavaScript() + '(' + this.right.toJavaScript() + ')';
       }
     });
 

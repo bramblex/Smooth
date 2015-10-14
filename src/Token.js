@@ -33,6 +33,9 @@ define(['./Class'], function(Class){
     .method('constructor', function(content, position){
       Token
         .apply(this, ['Identifier', content, position]);
+    })
+    .method('toJavaScript', function(){
+      return this.content;
     });
 
   Token.SymbolToken = Class('SymbolToken', Token)
@@ -63,6 +66,14 @@ define(['./Class'], function(Class){
 
       return [this.content_type.slice(0,3),
         pair(JSON.stringify(this.content))].join('#');
+    })
+    .method('toJavaScript', function(){
+      if (this.content_type === 'Number'){
+        return this.content;
+      }
+      else if (this.content_type === 'String'){
+        return JSON.stringify(this.content); 
+      }
     });
 
   Token.EOLToken = Class('EOLToken', Token)

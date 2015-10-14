@@ -1,0 +1,22 @@
+{
+  "name": "parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "library.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bramblex/Parser.git"
+  },
+  "author": "brambles",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bramblex/Parser/issues"
+  },
+  "homepage": "https://github.com/bramblex/Parser#readme",
+  "dependencies": {
+    "js-beautify": "^1.5.10"
+  }
+}
