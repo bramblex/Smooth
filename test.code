@@ -8,4 +8,9 @@
 
 #a := 123 'aa\"\ndf' #this is comments
 #
-#aaa bbbb ccc
+
+
+aaa := bbb ccc ddd
+aaa bbb (ccc 'aaa') (aaa)
+eee fff dddl
+

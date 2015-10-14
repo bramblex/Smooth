@@ -63,6 +63,9 @@
     .method('constructor', function(){
       this.indent = 0;
     })
+    .method('constructor', function(array){
+      this.push.apply(this, array);
+    })
     .method('getPosition', function getPosition(){
       return this[0].position;
     })
@@ -82,6 +85,9 @@
         }
       }
       return false;
+    })
+    .method('slice', '*', function slice(){
+      return Line(Array.prototype.slice.apply(this, arguments));
     })
     .method('inspect', '*', function(){
       var indent_str = (function(n){
@@ -241,22 +247,12 @@
     }
     else if (item instanceof Line){
 
-      if (if_token.equal(item.fst())){
-        return ifStatementsParse(item);
-      }
-      else if (while_token.equal(item.fst())){
-        return whileStatementsParse(item);
-      }
-      else if (assignment_symbol.equal(item.scd())){
+      if (assignment_symbol.equal(item.scd())){
         return assignmentParse(item);
-      }
-      else if (assignment_symbol.equal(item.lst())){
-        return functionDefineParse(item);
       }
       else{
         return expressionParse(item);
       }
-
     }
     else {
       throw Error(JSON.stringify(item));
@@ -264,40 +260,76 @@
   };
 
   var assignmentParse = function assignmentParse(line){
-    var node = ASTNode.AssignmentStatement();
+    return ASTNode.AssignmentStatement(line[0], expressionParse(line.slice(2)));
   };
 
   var functionDefineParse = function functionDefineParse(line){
+    return ASTNode.FunctionDefineStatement(line[0], line.slice(1, -1), parse(line.succeed_statements_list));
   };
 
-  var expressionParse = function expressionParse(item){
-    if (item instanceof Token){
-      return ASTNode.Expression(item);
-    }
-    else if(Array.isArray(item)){
-      if (item.length === 1){
-        return ASTNode.Expression(item[0]);
+  var expressionParse = (function(){
+    var left_pair = Token.SymbolToken('(', Token.fack_position);
+    var right_pair = Token.SymbolToken(')', Token.fack_position);
+
+    var id = Token.IdentifierToken('', Token.fack_position);
+    var lit = Token.LiteralToken('', '', Token.fack_position);
+
+    return function expressionParse(item){
+      if (item instanceof Token){
+        return ASTNode.Expression(item);
       }
-      else if (item.length === 0){
-        throw Error();
+      else if(item instanceof Line){
+        if (item.length === 1){
+          return ASTNode.Expression(item[0]);
+        }
+        else if (item.length === 0){
+          throw ParserError(item.getPosition());
+        }
+        else{
+          var i=item.length-1;
+
+          if (id.isType(item.lst()) || lit.isType(item.lst())){
+            return ASTNode.Expression(
+              expressionParse(item.slice(0, -1)), expressionParse(item.lst()));
+          }
+
+          var right_count=0;
+          for(i; i>=0; i--){
+            var token = item[i];
+            if (right_pair.equal(token)){
+              right_count = right_count + 1;
+            }
+            else if (left_pair.equal(token)){
+              right_count = right_count - 1;
+              if (right_count === 0){
+                if (i === 0){
+                  return expressionParse(item.slice(1,-1));
+                }
+                else {
+                  return ASTNode.Expression(
+                    expressionParse(item.slice(0, i)), expressionParse(item.slice(i+1, -1)));
+                }
+              }
+              else if (left_count < 0){
+                throw arserError(token.getPosition());
+              }
+            }
+          }
+          throw ParserError(token.getPosition());
+        }
       }
       else{
-        var left, right;
-        if (item[0])
-
-        return ASTNode.Expression(
-          expressionParse(left), expressionParse(right));
+        throw ParserError(item.getPosition());
       }
-    }
-    else{
-      throw ParserError(item.getPosition());
-    }
-  };
+    };
+  })();
 
   var whileStatementsParse = function whileStatementsParse(line){
+    return ASTNode.whileStatementsParse(expressionParse(line.slice(1)), parse(line.succeed_statements_list));
   };
 
   var ifStatementsParse = function ifStatementsParse(line){
+    return ASTNode.IfElseStatement(expressionParse(line.slice(1)), parse(line.succeed_statements_list));
   };
 
   var statementsListParse = function statementsListParse(block){

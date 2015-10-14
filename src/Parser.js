@@ -219,17 +219,8 @@ define(['./Class', './Token', './AST'], function(Class, Token, ASTNode){
     }
     else if (item instanceof Line){
 
-      if (if_token.equal(item.fst())){
-        return ifStatementsParse(item);
-      }
-      else if (while_token.equal(item.fst())){
-        return whileStatementsParse(item);
-      }
-      else if (assignment_symbol.equal(item.scd())){
+      if (assignment_symbol.equal(item.scd())){
         return assignmentParse(item);
-      }
-      else if (assignment_symbol.equal(item.lst())){
-        return functionDefineParse(item);
       }
       else{
         return expressionParse(item);
@@ -248,38 +239,62 @@ define(['./Class', './Token', './AST'], function(Class, Token, ASTNode){
     return ASTNode.FunctionDefineStatement(line[0], line.slice(1, -1), parse(line.succeed_statements_list));
   };
 
-  var expressionParse = function expressionParse(item){
-    if (item instanceof Token){
-      return ASTNode.Expression(item);
-    }
-    else if(Array.isArray(item)){
-      if (item.length === 1){
-        return ASTNode.Expression(item[0]);
-      }
-      else if (item.length === 0){
-        throw Error(item.getPosition());
-      }
-      else{
-        var exprSplit = function exprSplit(line){
-          var right_pair = Token.SymbolToken(')', Token.fack_position);
-          var left_pair = Token.SymbolToken('(', Token.fack_position);
-          var i = line.length - 1;
+  var expressionParse = (function(){
+    var left_pair = Token.SymbolToken('(', Token.fack_position);
+    var right_pair = Token.SymbolToken(')', Token.fack_position);
 
-          if ()
+    var id = Token.IdentifierToken('', Token.fack_position);
+    var lit = Token.LiteralToken('', '', Token.fack_position);
 
-          for(i; i<=0; i--){
+    return function expressionParse(item){
+      if (item instanceof Token){
+        return ASTNode.Expression(item);
+      }
+      else if(item instanceof Line){
+        if (item.length === 1){
+          return ASTNode.Expression(item[0]);
+        }
+        else if (item.length === 0){
+          throw ParserError(item.getPosition());
+        }
+        else{
+          var i=item.length-1;
+
+          if (id.isType(item.lst()) || lit.isType(item.lst())){
+            return ASTNode.Expression(
+              expressionParse(item.slice(0, -1)), expressionParse(item.lst()));
           }
 
-        };
-
-        return ASTNode.Expression(
-          expressionParse(left), expressionParse(right));
+          var right_count=0;
+          for(i; i>=0; i--){
+            var token = item[i];
+            if (right_pair.equal(token)){
+              right_count = right_count + 1;
+            }
+            else if (left_pair.equal(token)){
+              right_count = right_count - 1;
+              if (right_count === 0){
+                if (i === 0){
+                  return expressionParse(item.slice(1,-1));
+                }
+                else {
+                  return ASTNode.Expression(
+                    expressionParse(item.slice(0, i)), expressionParse(item.slice(i+1, -1)));
+                }
+              }
+              else if (left_count < 0){
+                throw arserError(token.getPosition());
+              }
+            }
+          }
+          throw ParserError(token.getPosition());
+        }
       }
-    }
-    else{
-      throw ParserError(item.getPosition());
-    }
-  };
+      else{
+        throw ParserError(item.getPosition());
+      }
+    };
+  })();
 
   var whileStatementsParse = function whileStatementsParse(line){
     return ASTNode.whileStatementsParse(expressionParse(line.slice(1)), parse(line.succeed_statements_list));
