@@ -27,38 +27,19 @@
   };
 
   
-define(['./Class', './Lexer'], function(Class, Lexer){
+define(['./Class', './Lexer', './Parser'], function(Class, Lexer, Parser){
 
   var Main = Class('Main', Object)
     .classmethod('run', function(){
-      //var lexer = Lexer();
+      var lexer = Lexer();
+      var parser = Parser();
 
-      //var fs = require('fs');
-      //var code = fs.readFileSync('./test.code', 'utf8');
-      ////var token_stream = lexer.parse('"asfd" aaa #');
-      //var token_stream = lexer.parse(code);
-      //console.log(token_stream);
-
-      var A = Class('A', Object)
-        .method('run', function(){
-          console.log('没有参数');
-        });
-      var B = Class('B', A)
-        .method('run', function(a){
-          console.log('一个参数', a);
-        });
-      var C = B.extend('C')
-        .method('run', function(a, b){
-          console.log('两个参数', a, b);
-        });
-      var t = C();
-      t.run();
-      t.run(1);
-      t.run(1,2);
-      console.log(t instanceof A);
-      console.log(t instanceof B);
-      console.log(t instanceof C);
-      
+      var fs = require('fs');
+      var code = fs.readFileSync('./test.code', 'utf8');
+      //var token_stream = lexer.parse('"asfd" aaa #');
+      var token_stream = lexer.parse(code);
+      var ast = parser.parse(token_stream);
+      console.log(ast);
     });
 
   return Main;

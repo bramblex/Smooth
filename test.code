@@ -1,5 +1,11 @@
 #this is comments
-func a b c :=
-  abc def bcd
+#func a b c :=
+    #abc def bcd
 
-a := 123 'aa\"\ndf' #this is comments
+#if compare a b
+    #aaa bbb ccc ddd
+        #bbb ccc ddd
+
+#a := 123 'aa\"\ndf' #this is comments
+#
+#aaa bbbb ccc

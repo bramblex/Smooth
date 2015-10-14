@@ -49,6 +49,9 @@
     .method('isContent', function isType(token){
       return this.content === token.content;
     })
+    .method('getPosition', function getPosition(){
+      return this.position;
+    })
     .method('inspect', '*', function inspect(){
       var pair = function(string){return '('+string+')';};
       return [this.type.slice(0,2), pair(this.content)].join('#');
