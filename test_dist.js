@@ -3,39 +3,32 @@ var add = function(a) {
     return a + b;
   }
 };
-
 var sub = function(a) {
   return function(b) {
     return a - b;
   }
 };
-
 var mult = function(a) {
   return function(b) {
     return a * b;
   }
 };
-
 var div = function(a) {
   return function(b) {
     return a / b;
   }
 };
-
 var compare = function(a) {
   return function(b) {
     return a === b;
   }
 };
-
 var not = function(a) {
   return !a;
 };
-
 var print = function(a) {
   console.log(a);
 };
-
 var End = {
   isEnd: true
 };
@@ -44,6 +37,7 @@ var List = (function() {
     if (a.isEnd === true) {
       return array;
     }
+    var array = array.slice();
     array.push(a);
     return function(b) {
       return _List(b, array);
@@ -83,4 +77,19 @@ var func2 = func1(2);
 var func3 = func2(3);
 print(func3);
 print("=====================================");
-print(List(1)(2)(3)(List(3)(2)(1)(End))(End));
+print(List(1)(2)(3)(4)(End));
+var l1 = List(1)(2)(3)(4);
+var l2 = l1(5)(6)(7)(8)(End);
+var l3 = l1(End);
+print(List(l1)(l2)(l3)(End));
+print("=====================================");
+var ieFunc = (function() {
+  var aaa = "aaa";
+  var bbb = "bbb";
+  print(List(aaa)(bbb)(End));
+  var _func_ = function(ccc) {
+    print(List(ccc)(bbb)(aaa)(End));
+  };
+  return (_func_);
+})();
+ieFunc("ccc");

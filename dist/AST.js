@@ -148,13 +148,18 @@
 
       var func_body = this.statements_list.toJavaScript();
 
-      for (var i=this.argv.length-1; i>=0; i--){
-        var arg = this.argv[i];
-        if (i === 0){
-          func_body = 'function('+ arg.toJavaScript() +'){' + func_body + '}'; 
-        }
-        else {
-          func_body = 'return function('+ arg.toJavaScript() +'){' + func_body + '}'; 
+      if (this.argv.length === 0){
+        func_body = '(function(){' + func_body + '})()';
+      }
+      else {
+        for (var i=this.argv.length-1; i>=0; i--){
+          var arg = this.argv[i];
+          if (i === 0){
+            func_body = 'function('+ arg.toJavaScript() +'){' + func_body + '}'; 
+          }
+          else {
+            func_body = 'return function('+ arg.toJavaScript() +'){' + func_body + '}'; 
+          }
         }
       }
       return s + ' ' + this.name.toJavaScript() +'='+  func_body ;

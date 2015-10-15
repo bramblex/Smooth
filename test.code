@@ -1,8 +1,9 @@
 
 # 这里几乎演示了所有语法规则了，非常简单。
 # 唯一需要注意的是赋值符号有 = 和 := 之分。
-print '====================================='
 
+print '====================================='
+# 这是阶乘的例子
 fact n :=
     if compare n 1
         return 1 #返回
@@ -11,7 +12,7 @@ fact n :=
 print (fact 5)
 
 print '====================================='
-
+# while循环
 loop n :=
     while not (compare n 0) 
         print n
@@ -19,6 +20,7 @@ loop n :=
 loop 10
 
 print '====================================='
+# 所有的函数本质上都是只有一个参数的函数
 
 func a b c :=
     return add (add a b) c
@@ -30,4 +32,24 @@ func3 := func2 3
 print func3
 
 print '====================================='
-print (List 1 2 3 (List 3 2 1 End) End)
+# 通过函数实现的List
+print (List 1 2 3 4 End)
+
+# List 是一个函数，接受一个参数后依旧是一个函数，只有当接受参数为 End 的时候返回数组
+l1 := List 1 2 3 4
+l2 := l1 5 6 7 8 End
+l3 := l1 End
+
+print (List l1 l2 l3 End)
+
+print '====================================='
+# 立即执行函数，可以用来打一个闭包…
+ieFunc :=
+    aaa := 'aaa'
+    bbb := 'bbb'
+    print (List aaa bbb End)
+    _func_ ccc :=
+        print (List ccc bbb aaa End)
+    return _func_
+
+ieFunc 'ccc'
