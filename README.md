@@ -3,7 +3,7 @@
 2. [语法](#语法)
 
 #简介
-BlxScript是我闲蛋疼自己设计的语言，由Lambda表达式扩展而来，函数式特性非常强的语言。BlxScript能编译成JS再执行。
+BlxScript是我闲蛋疼自己设计的语言，由Lambda表达式扩展而来，函数式特性非常强的语言。BlxScript能编译成JS再执行。你可以在这里测试以及尝试。[http://bramblex.github.io/BlxScript](http://bramblex.github.io/BlxScript)
 
 #语法
 ##Hello World
