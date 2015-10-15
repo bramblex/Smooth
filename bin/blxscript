@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+
+eval((function(){
+
+  if (process.argv.length <= 2){
+    console.log('Usage: blxscript <source_file>');
+    process.exit(1);
+  }
+
+  var source_file = process.argv[2];
+  var fs = require('fs');
+  var path = require('path');
+
+  var getLibraryCode = function getLibraryCode(){
+    var librarys_dir = path.join(__dirname, '../lib');
+    return fs
+    .readdirSync(librarys_dir)
+    .filter(function(filename){return /.*\.js/.test(filename);})
+    .map(function(filename){return path.join(librarys_dir, filename);})
+    .map(function(filepath){return fs.readFileSync(filepath, 'utf8');})
+    .reduce(function(a,b){return a+b}, '');
+  };
+
+  var source_code = fs.readFileSync(source_file, 'utf8');
+
+  var parser = require('../dist/Main');
+  var target_code = getLibraryCode() + parser.parse(source_code);
+
+  return target_code;
+
+})());
