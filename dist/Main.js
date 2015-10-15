@@ -49,7 +49,7 @@ define(['./Class', './Lexer', './Parser'], function(Class, Lexer, Parser){
       var library_code = fs.readFileSync('./library.js', 'utf8');
       var target_code = ast.toJavaScript();
 
-      fs.writeFileSync('./test_dist.js', beautify(library_code+target_code));
+      fs.writeFileSync('./test_dist.js', beautify(library_code+target_code, {indent_size: 2}));
     });
 
   return Main;

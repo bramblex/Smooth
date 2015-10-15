@@ -55,7 +55,7 @@
     return reslut.slice(0, -1);
   })
   .method('toJavaScript', function(){
-    return '{' +this.content.map(function(s){return s.toJavaScript()}).join(';') + '}';
+    return this.content.map(function(s){return s.toJavaScript()}).join(';') + ';';
   });
 
   var assignment_and_create_symbol  = Token.SymbolToken(':=', Token.fack_position);
@@ -97,7 +97,7 @@
       return 'if ' + this.condition.inspect() + '\n' + this.statements_list.inspect(indent);
     })
     .method('toJavaScript', function(){
-      return 'if (' + this.condition.toJavaScript() + ')' + this.statements_list.toJavaScript();
+      return 'if (' + this.condition.toJavaScript() + ')' + '{' + this.statements_list.toJavaScript() + '}';
     });
 
   ASTNode.WhileLoopStatement = Class('WhileLoopStatement', ASTNode)
@@ -109,7 +109,7 @@
       return 'while ' + this.condition.inspect() + '\n' + this.statements_list.inspect(indent);
     })
     .method('toJavaScript', function(){
-      return 'while (' + this.condition.toJavaScript() + ')' + this.statements_list.toJavaScript();
+      return 'while (' + this.condition.toJavaScript() + ')' +'{' + this.statements_list.toJavaScript() + '}';
     });
 
 
@@ -148,18 +148,16 @@
 
       var func_body = this.statements_list.toJavaScript();
 
-      if (this.argv.length > 0){
-        this.argv.slice().reverse()
-        .map(function(t){return t.content})
-        .forEach(function(arg){
-          func_body = 'return function(' + arg + '){' + func_body + '}';
-        });
+      for (var i=this.argv.length-1; i>=0; i--){
+        var arg = this.argv[i];
+        if (i === 0){
+          func_body = 'function('+ arg.toJavaScript() +'){' + func_body + '}'; 
+        }
+        else {
+          func_body = 'return function('+ arg.toJavaScript() +'){' + func_body + '}'; 
+        }
       }
-      else {
-        func_body = 'return function(){' + func_body + '}';
-      }
-
-      return s + ' ' + this.name.toJavaScript() +'='+ '(function(){ ' + func_body + '})()';
+      return s + ' ' + this.name.toJavaScript() +'='+  func_body ;
     });
 
   ASTNode.Expression = Class('Expression', ASTNode)
