@@ -46,3 +46,6 @@ var List = (function(){
     return _List(a, array);
   };
 })();
+var error = function(a){
+  throw Error(a);
+};

@@ -53,7 +53,9 @@ define(['./Class', './Token'], function(Class, Token){
     })
     .method('toJavaScript', function(){
       if (this.type === 'assignment'){
-        return this.left.toJavaScript() + '=' + this.right.toJavaScript();
+        var val_name = this.left.toJavaScript(); 
+        var body = this.left.toJavaScript() + '=' + this.right.toJavaScript();
+        return 'if (typeof '+val_name+' !== \'undefined\'){'+body+'}else{error(\''+val_name+' not defined!\')}'
       }
       else if(this.type === 'assignment_and_create'){
         return 'var ' + this.left.toJavaScript() + '=' + this.right.toJavaScript();
@@ -111,12 +113,6 @@ define(['./Class', './Token'], function(Class, Token){
       return reslut;
     })
     .method('toJavaScript', function(){
-      if (this.type === 'assignment'){
-        var s = '';
-      }
-      else if(this.type === 'assignment_and_create'){
-        var s = 'var';
-      }
 
       var func_body = this.statements_list.toJavaScript();
 
@@ -134,7 +130,15 @@ define(['./Class', './Token'], function(Class, Token){
           }
         }
       }
-      return s + ' ' + this.name.toJavaScript() +'='+  func_body ;
+
+      var body = this.name.toJavaScript() +'='+  func_body;
+      if (this.type === 'assignment'){
+        var val_name = this.name.toJavaScript();
+        return 'if (typeof '+val_name+' !== \'undefined\'){'+body+'}else{error(\''+val_name+' not defined!\')}'
+      }
+      else if(this.type === 'assignment_and_create'){
+        return 'var ' +  body;
+      }
     });
 
   ASTNode.Expression = Class('Expression', ASTNode)

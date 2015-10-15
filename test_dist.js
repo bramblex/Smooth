@@ -48,6 +48,9 @@ var List = (function() {
     return _List(a, array);
   };
 })();
+var error = function(a) {
+  throw Error(a);
+};
 print("=====================================");
 var fact = function(n) {
   if (compare(n)(1)) {
@@ -60,7 +63,11 @@ print("=====================================");
 var loop = function(n) {
   while (not(compare(n)(0))) {
     print(n);
-    n = sub(n)(1);
+    if (typeof n !== 'undefined') {
+      n = sub(n)(1)
+    } else {
+      error('n not defined!')
+    };
   };
 };
 loop(10);
