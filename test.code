@@ -28,3 +28,6 @@ func2 := func1 2
 func3 := func2 3
 
 print func3
+
+print '====================================='
+print (List 1 2 3 (List 3 2 1 End) End)
