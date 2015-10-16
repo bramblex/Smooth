@@ -13,11 +13,30 @@ BlxScript是我闲蛋疼自己设计的语言，由Lambda表达式扩展而来�
 4. 用 ```blxscript``` 直接运行代码，或者用 ```blxscriptc``` 编译成js。
 
 #语法
+1. [Hello World](#Hello World)
+2. [基础函数](#基础函数)
+2. [表达式](#表达式)
+3. [赋值](#赋值)
+4. [定义函数](#定义函数)
+5. [条件语句](#条件语句)
+6. [循环语句](#循环语句)
+7. [函数的柯里化](#函数的柯里化)
+8. [列表](#列表)
+
 ##Hello World
 ```
 #先从hello world开始吧。
 print 'Hello World!'
 ```
+##基础函数
+1. (add x y) => x + y
+2. (sub x y) => x - y
+3. (mult x y) => x * y
+4. (div x y) => x / y
+5. (compare x y) => x == y
+6. (not x) => !x
+7. (print x) => 输出 x
+8. (compose f g) => \x -> f (g x)
 
 ##表达式
 BlxScript的表达式，和Lambda表达式的应用是一模一样的。BlxScript表达式的BNF是`E := E1 E2| V`。所有的函数都是只有一个参数的函数，并且函数的应用是左结合的。
