@@ -56,7 +56,7 @@ print a # => 100
 ##定义函数
 ```
 func x y :=
-	a := x + y
+	a := add x y
 	return a
 	
 print (func 1 2) # => 3
