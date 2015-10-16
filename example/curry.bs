@@ -1,0 +1,6 @@
+func a b :=
+    return add a b
+add3 := func 3
+
+print (add3 5) # => 8
+print (add3 10) # => 13
