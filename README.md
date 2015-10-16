@@ -1,9 +1,16 @@
 #BlxScript
 1. [简介](#简介)
+2. [安装](#安装)
 2. [语法](#语法)
 
 #简介
 BlxScript是我闲蛋疼自己设计的语言，由Lambda表达式扩展而来，函数式特性非常强的语言。BlxScript能编译成JS再执行。你可以在这里测试以及尝试。[http://bramblex.github.io/BlxScript](http://bramblex.github.io/BlxScript)
+
+#安装
+1. 首先，你要有```node```和```npm```
+2. 从github克隆代码。```git clone https://github.com/bramblex/BlxScript.git```
+3. 用npm link一下。```cd BlxScript && npm link```
+4. 用 ```blxscript``` 直接运行代码，或者用 ```blxscriptc``` 编译成js。
 
 #语法
 ##Hello World
