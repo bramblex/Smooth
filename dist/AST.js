@@ -42,6 +42,9 @@
   .method('constructor', function(){
     this.content = [];
   })
+  .method('constructor', function(content){
+    this.content = content;
+  })
   .method('push', function(node){
     return this.content.push(node);
   })
@@ -68,6 +71,7 @@
       else if (assignment_symbol.equal(symbol)){
         this.type = 'assignment';
       }
+      this.symbol = symbol;
       this.left = left;
       this.right = right;
     })
@@ -123,6 +127,7 @@
       else if (assignment_symbol.equal(symbol)){
         this.type = 'assignment';
       }
+      this.symbol = symbol;
       this.name = name;
       this.argv = argv;
       this.statements_list = statements_list;

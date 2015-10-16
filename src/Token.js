@@ -25,8 +25,9 @@ define(['./Class'], function(Class){
       return this.position;
     })
     .method('inspect', '*', function inspect(){
-      var pair = function(string){return '('+string+')';};
-      return [this.type.slice(0,2), pair(this.content)].join('#');
+      //var pair = function(string){return '('+string+')';};
+      //return [this.type.slice(0,2), pair(this.content)].join('#');
+      return this.content;
     });
 
   Token.IdentifierToken = Class('IdentifierToken', Token)
@@ -62,10 +63,15 @@ define(['./Class'], function(Class){
         && (this.content === token.content);
     })
     .method('inspect', '*', function (){
-      var pair = function(string){return '('+string+')';};
-
-      return [this.content_type.slice(0,3),
-        pair(JSON.stringify(this.content))].join('#');
+      //var pair = function(string){return '('+string+')';};
+      //return [this.content_type.slice(0,3),
+        //pair(JSON.stringify(this.content))].join('#');
+      if (this.content_type === 'Number'){
+        return this.content;
+      }
+      else if (this.content_type === 'String'){
+        return JSON.stringify(this.content); 
+      }
     })
     .method('toJavaScript', function(){
       if (this.content_type === 'Number'){

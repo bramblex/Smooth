@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+
+if (process.argv.length <= 3){
+  console.log('Usage: blxscriptc <source_file> <target_file>');
+  process.exit(1);
+}
+
+var source_file = process.argv[2];
+var target_file = process.argv[3];
+
+var fs = require('fs');
+var path = require('path');
+
+var source_code = fs.readFileSync(source_file, 'utf8');
+
+var parser = require('../dist/Main');
+var target_code = parser.cps(source_code);
+
+fs.writeFileSync(target_file, target_code);
+
