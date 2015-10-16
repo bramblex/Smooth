@@ -13,7 +13,7 @@ BlxScript是我闲蛋疼自己设计的语言，由Lambda表达式扩展而来�
 4. 用 ```blxscript``` 直接运行代码，或者用 ```blxscriptc``` 编译成js。
 
 #语法
-1. [Hello World](#Hello World)
+1. [Hello World](#Hello-World)
 2. [基础函数](#基础函数)
 2. [表达式](#表达式)
 3. [赋值](#赋值)
