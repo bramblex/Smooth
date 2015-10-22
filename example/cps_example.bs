@@ -1,15 +1,15 @@
 # 这份代码是用来做cps变换的测试代码 不能直接运行
-asyncWait := wait 1000
+asyncWait := wait
 
 print '任务开始'
-a := asyncWait
+a := asyncWait 1000
 print '任务1'
 print a
 
-b := asyncWait
+b := asyncWait 2000
 print '任务2'
 print b
 
-c := asyncWait
+c := asyncWait 3000
 print '任务3'
 print c

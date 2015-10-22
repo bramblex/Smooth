@@ -6,7 +6,7 @@ print '====================================='
 
 # 这是阶乘的例子
 fact n :=
-    if compare n 1
+    if equal n 1
         return 1 #返回
     return mult n (fact (sub n 1))
 
@@ -15,7 +15,7 @@ print (fact 5)
 print '====================================='
 # while循环
 loop n :=
-    while not (compare n 0) 
+    while not (equal n 0) 
         print n
         n = sub n 1
 loop 10

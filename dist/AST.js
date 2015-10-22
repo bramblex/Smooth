@@ -189,7 +189,14 @@
         return this.token.inspect();
       }
       else if (this.type === 'Expr'){
-        return '(' + this.left.inspect() + ' ' + this.right.inspect()+ ')' 
+
+        if (this.right.type === 'Val'){
+          return this.left.inspect() + ' ' + this.right.inspect();
+        }
+        else if (this.right.type === 'Expr'){
+          return this.left.inspect() + ' (' + this.right.inspect() + ')';
+        }
+        console.log(this.right, this.right.type);
       }
     })
     .method('toJavaScript', function(){

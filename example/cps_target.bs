@@ -1,15 +1,14 @@
-# cps转换后的代码
-asyncWait := (wait 1000)
-(print "任务开始")
+asyncWait := wait
+print "任务开始"
 __async_waper__ a :=
-  (print "任务1")
-  (print a)
+  print "任务1"
+  print a
   __async_waper__ b :=
-    (print "任务2")
-    (print b)
+    print "任务2"
+    print b
     __async_waper__ c :=
-      (print "任务3")
-      (print c)
-    (asyncWait __async_waper__)
-  (asyncWait __async_waper__)
-(asyncWait __async_waper__)
+      print "任务3"
+      print c
+    asyncWait 3000 __async_waper__
+  asyncWait 2000 __async_waper__
+asyncWait 1000 __async_waper__

@@ -2,6 +2,7 @@
 1. [简介](#简介)
 2. [安装](#安装)
 2. [语法](#语法)
+<!--4. [CPS变换](#CPS变换)-->
 
 #简介
 BlxScript是我闲蛋疼自己设计的语言，由Lambda表达式扩展而来，函数式特性非常强的语言。BlxScript能编译成JS再执行。你可以在这里测试以及尝试。[http://bramblex.github.io/BlxScript](http://bramblex.github.io/BlxScript)
@@ -33,7 +34,7 @@ print 'Hello World!'
 2. (sub x y) => x - y
 3. (mult x y) => x * y
 4. (div x y) => x / y
-5. (compare x y) => x == y
+5. (equal x y) => x == y
 6. (not x) => !x
 7. (print x) => 输出 x
 8. (compose f g) => \x -> f (g x)
@@ -84,7 +85,7 @@ print (func 1 2) # => 3
 ##条件语句
 ```
 a := 10
-if compare a 10
+if equal a 10
 	a = add a 1
 	
 print a # => 11
@@ -93,7 +94,7 @@ print a # => 11
 ##循环语句
 ```
 a := 10
-while not (compare n 0)
+while not (equal n 0)
 	print n
 	n = sub n 1
 ```

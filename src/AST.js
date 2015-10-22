@@ -11,27 +11,27 @@ define(['./Class', './Token'], function(Class, Token){
   var ASTNode = Class('ASTNode', Object);
 
   ASTNode.StatementsList = Class('StatementsList', ASTNode)
-  .method('constructor', function(){
-    this.content = [];
-  })
-  .method('constructor', function(content){
-    this.content = content;
-  })
-  .method('push', function(node){
-    return this.content.push(node);
-  })
-  .method('inspect', '*', function(indent){
-    var indent = indent || 0;
-    var reslut = '';
-    for (var i=0; i<this.content.length; i++){
-      var statement = this.content[i];
-      reslut = reslut + indent_str(indent) + statement.inspect(indent+2) + '\n';
-    }
-    return reslut.slice(0, -1);
-  })
-  .method('toJavaScript', function(){
-    return this.content.map(function(s){return s.toJavaScript()}).join(';') + ';';
-  });
+    .method('constructor', function(){
+      this.content = [];
+    })
+    .method('constructor', function(content){
+      this.content = content;
+    })
+    .method('push', function(node){
+      return this.content.push(node);
+    })
+    .method('inspect', '*', function(indent){
+      var indent = indent || 0;
+      var reslut = '';
+      for (var i=0; i<this.content.length; i++){
+        var statement = this.content[i];
+        reslut = reslut + indent_str(indent) + statement.inspect(indent+2) + '\n';
+      }
+      return reslut.slice(0, -1);
+    })
+    .method('toJavaScript', function(){
+      return this.content.map(function(s){return s.toJavaScript()}).join(';') + ';';
+    });
 
   var assignment_and_create_symbol  = Token.SymbolToken(':=', Token.fack_position);
   var assignment_symbol  = Token.SymbolToken('=', Token.fack_position);
@@ -161,7 +161,16 @@ define(['./Class', './Token'], function(Class, Token){
         return this.token.inspect();
       }
       else if (this.type === 'Expr'){
-        return '(' + this.left.inspect() + ' ' + this.right.inspect()+ ')' 
+
+        if (this.right.type === 'Val'){
+          return this.left.inspect() + ' ' + this.right.inspect();
+        }
+        else if (this.right.type === 'Expr'){
+          return this.left.inspect() + ' (' + this.right.inspect() + ')';
+        }
+        else {
+          throw Error();
+        }
       }
     })
     .method('toJavaScript', function(){

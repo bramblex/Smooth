@@ -48,7 +48,12 @@ define(['./Class', './AST', './Token'], function(Class, ASTNode, Token){
           ASTNode.StatementsList(next)
         );
         content.push(async_wapper_func);
-        content.push(ASTNode.Expression(right, async_wapper_token));
+        content.push(
+          ASTNode.Expression(
+            right,
+            ASTNode.Expression(async_wapper_token)
+          )
+        );
 
         transform(async_wapper_func.statements_list);
         break;
