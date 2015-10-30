@@ -1,309 +1,241 @@
 
 define(['./Class', './Token'], function(Class, Token){
 
-
   var TokenStream = Class('TokenStream', Array)
+    .method('last', function(){
+      return this[this.length-1];
+    })
     .method('inspect', '*', function(){
-      var reslut = '';
-      var eol = Token.EOLToken({});
-
-      this.forEach(function(token){
-        reslut = reslut + ' ' + token.inspect();
-        if( eol.equal(token) ){
-          reslut = reslut + '\n';
+      var content_str = this.map(function(i){
+        if (i.instanceOf(Token.EmptyToken)){
+          return i.inspect() + '\n';
         }
-      });
-      return reslut;
+        else {
+          return i.inspect()
+        }
+      }).join(' ');
+      return '[ TokenStream ' + content_str +' ]';
     });
 
-  var isA = function isAlpha(c){
-    var code = c.charCodeAt(0);
-    return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
-  };
+  var CharSet = Class('CharSet', String)
+    .method('has', function(c){
+      return this.indexOf(c) >= 0;
+    })
+    .method('inspect', '*', function(){
+      var char_set = Array.prototype.slice.apply(this);
+      var content_str = char_set
+        .map(function(i){return JSON.stringify(i)})
+        .join(' ');
+      return '[ CharSet ' + content_str + ' ]';
+    });
 
-  var isD = function isDigit(c){
-    var code = c.charCodeAt(0);
-    return (code >= 48 && code <= 57);
-  };
+  var WholeCharSet = Class('CharSet', CharSet)
+    .method('has', function(c){
+      return true;
+    })
+    .method('inspect', '*', function(){
+      return '[ WholeCharSet ]';
+    });
 
-  var each = function each(list, func){
-    var l = list.length;
-    var reslut;
-    for (var i=0; i<l; i++){
-      reslut = func(list[i]);
-      if (reslut !== false)
-        return reslut;
-    }
-    return false;
-  };
+  var Position = Class('Position', Object)
+    .method('constructor', function(){
+      this.offset = 0;
+      this.line_nu = 1;
+      this.char_nu = 1;
+    })
+    .method('constructor', function(position){
+      this.offset = position.offset;
+      this.line_nu = position.line_nu;
+      this.char_nu = position.char_nu;
+    })
+    .method('copy', function(){
+      return Position(this);
+    })
+    .method('set', function(offset){
+      this.char_nu = this.char_nu + (offset - this.offset);
+      this.offset = offset;
+    })
+    .method('addLine', function(){
+      this.line_nu = this.line_nu + 1;
+      this.char_nu = 1;
+    })
+    .position('inspect', '*', function(){
+      return 'Line ' + this.line_nu + ', Char ' + this.char_nu;
+    });
 
-  var Lexer = Class('Lexer', Object)
-  .method('constructor', function(){
-    this.__lexer__ = [];
+  var BaseLexer = Class('BaseLexer', Object)
+    .method('constructor', function(TokenClass, first_char_set, content_char_set){
+      this.TokenClass = TokenClass;
+      this.first_char_set = first_char_set;
+      this.content_char_set = content_char_set;
+    })
+    .method('parse', function(stream, position, token_stream){
+      var i= position.offset;
+      var j=i;
 
-    this
-      .addLexer(Lexer.IdentifierLexer)
-      .addLexer(Lexer.SymbolLexer)
-      .addLexer(Lexer.SpaceLexer)
-      .addLexer(Lexer.LiteralLexer)
-      .addLexer(Lexer.EOLLexer)
-      .addLexer(Lexer.CommentLexer)
-  })
-  .method('addLexer', function addLexer(lexer){
-    this.__lexer__.push(lexer);
-    return this;
-  })
-  .method('clearLexer', function clearLexer(){
-    this.__lexer__ = [];
-  })
-  .method('parse', function parse(stream){
-
-    var length = stream.length;
-
-    var position = {
-      offset: 0,
-      line_nu: 0,
-      char_nu: 0,
-      setOffset: function setOffset(offset){
-        this.char_nu = this.char_nu + (offset - this.offset);
-        this.offset = offset;
-      },
-      addLine: function addLine(){
-        this.offset = this.offset + 1;
-        this.line_nu = this.line_nu + 1;
-        this.char_nu = 0;
-      },
-    };
-
-    var token_stream = TokenStream();
-    var empty_token = Token.EmptyToken(position);
-
-    for (var i=0; i<length; i++){
-      var token = each(this.__lexer__, function(lexer){
-        return lexer(stream, length, position);
-      });
-      if(token === false){
-        throw Lexer.LexerError(position);
-      }
-      else{
-        if (!empty_token.equal(token)){
-          token_stream.push(token);
-        }
-        i = position.offset - 1;
-      }
-    }
-    token_stream.push(Token.EOFToken(position));
-    return token_stream;
-  })
-
-  // classmethod
-  .classmethod('IdentifierLexer', function IdentifierLexer(stream, length, position){
-
-    var i = position.offset;
-    var l = length;
-
-    if (!isA(stream[i]) && stream[i] !== '_'){
-      return false;
-    }
-
-    for (var j=i; j<l; j++){
-      if (!(isA(stream[j]) || isD(stream[j]) || stream[j] === '_')){
-        break;
-      }
-    };
-
-    var token = Token.IdentifierToken(stream.slice(i, j), position);
-    position.setOffset(j);
-    return token;
-  }) 
-  .classmethod('SymbolLexer', function SymbolLexer(stream, length, position){
-
-    var i = position.offset;
-    var l = length;
-
-    var operator_list = '`~!@$%^&*()-+=[]{}\\|:;<>,./?';
-    var single_list = '()[]{}';
-    if (operator_list.indexOf(stream[i]) < 0){
-      return false;
-    }
-
-    if (single_list.indexOf(stream[i]) > 0 ){
-      var j=i+1;
-    }
-    else{
-      for (var j=i; j<l; j++){
-        if (operator_list.indexOf(stream[j]) >= 0){
-          continue;
-        }
-        else{
-          break;
-        }
-
-      }
-    }
-
-    var token = Token.SymbolToken(stream.slice(i, j), position);
-    position.setOffset(j);
-    return token;
-  })
-  .classmethod('SpaceLexer', function SpaceLexer(stream, length, position){
-    var i = position.offset;
-    var l = length;
-
-    if (stream[i] !== ' '){
-      return false
-    }
-
-    var count = 0;
-    for (var j=i; j<l; j++){
-      if (stream[j] === ' '){
-        count = count + 1;
-      }
-      else {
-        break;
-      }
-    }
-
-    var token = Token.SpaceToken(count, position);
-    position.setOffset(j);
-    return token;
-
-  })
-  .classmethod('LiteralLexer', function LiteralLexer(stream, length, position){
-
-    var NumberLexer = function NumberLexer(stream, length, position){
-      var i = position.offset;
-      var l = length;
-      if(!isD(stream[i])){
+      if (!first_char_set.has(stream[i])){
         return false;
       }
 
-      var is_in_fractional = false;
-      for(var j=i; j<l; j++){
-        var c = stream[j];
-
-        if(isD(c)){
-          continue;
-        }
-        else if(c === '.' ){
-          if(is_in_fractional){
-            break;
-          }
-          if (isD(stream[j+1])){
-            is_in_fractional = true;
-            continue;
-          }
-          else{
-            break;
-          }
-        }
-        else if(!isD(c) && !isA(c) && c !== '_'){
-          var token = Token.LiteralToken('Number', stream.slice(i, j), position);
-          position.setOffset(j)
-          return token;
-        }
-        else{
+      var l = stream.length;
+      for (j; j<l; j++){
+        if (!content_char_set.has(stream[j])){
           break;
         }
-
       }
-      return false;
-    };
+      position.set(j);
+      return this.TokenClass(stream.slice(i, j));
+    });
 
-    var StringLexer = function StringLexer(stream, length, position){
-      var i = position.offset;
-      var l = length;
-      var sign;
-      if(stream[i] === '"' || stream[i] === "'"){
-        sign = stream[i]; 
-      }
-      else {
+  var MixLexer = Class('MixLexer', BaseLexer)
+    .method('constructor', function(lexer1, lexer2){
+      this.lexer1 = lexer1;
+      this.lexer2 = lexer2;
+    })
+    .method('parse', function(stream, position, token_stream){
+      return this.lexer2.parse(this.lexer1.parse(stream, position, token_stream));
+    })
+
+  var Surround = Class('Surround', BaseLexer)
+    .method('constructor', function(TokenClass, surround_pair, content_char_set){
+      this.TokenClass = TokenClass;
+      this.surround_pair = surround_pair;
+      this.content_char_set = content_char_set;
+    })
+    .method('parse', function(stream, position, token_stream){
+      var left_pair = this.surround_pair.left;
+      var right_pair = this.surround_pair.right;
+
+      var i= position.offset;
+
+      if (stream[i]!==left_pair){
         return false;
       }
 
-      var esacpe_map = {
-        'n': '\n',
-        'r': '\r',
-        't': '\t',
-        'b': '\b',
-        'f': '\f',
-      }
-
-      var str = '';
-      var is_in_esacpe = false;
-      for(var j=i+1; j<l; j++){
+      var l = stream.length;
+      i = i + 1;
+      var j=i;
+      for (j; j<l; j++){
         var c = stream[j];
-
-        if (is_in_esacpe){
-          str = str + (esacpe_map[c] || c);
-          is_in_esacpe = false;
+        if ( c === right_pair && c !== '\\'){
+          break;
         }
-        else if (c === '\\'){
-          is_in_esacpe = true;
-        }
-        else if (c === sign){
-
-          var token = Token.LiteralToken('String', str, position);
-          position.setOffset(j+1);
-          return token;
-        }
-        else if (c === '\n'){
+        else if (!content_char_set.has(c)){
           return false;
         }
-        else{
-          str = str + c;
-        }
       }
-      return false;
-    };
-
-    return each([NumberLexer, StringLexer], function(func){
-      return func(stream, length, position);
+      position.set(j+1);
+      return this.TokenClass(stream.slice(i, j));
     });
-  })
-  .classmethod('EOLLexer', function EOLLexer(stream, length, position){
-    var i = position.offset;
-    if (stream[i] === '\n'){
-      var token = Token.EOLToken(position);
-      position.addLine();
-      return token;
-    }
-    else{
-      return false;
-    }
-  })
-  .classmethod('CommentLexer', function CommentLexer(stream, length, position){
-    var i = position.offset;
-    var l = length;
 
-    if (stream[i] !== '#'){
-      return false;
-    }
-    else {
-      for (var j=i; j<l; j++){
-        if (stream[j] === '\n'){
+  var Indent = Class('Indent', BaseLexer)
+    .method('constructor', function(TokenClass, EOLTokenClass, indent_char_set){
+      this.TokenClass = TokenClass;
+      this.EOLTokenClass = EOLTokenClass;
+      this.indent_char_set = indent_char_set;
+    })
+    .method('parse', function(stream, position, token_stream){
+
+      var i = position.offset;
+      if(!this.indent_char_set.has(stream[i])){
+        return false;
+      }
+      if (!(token_stream.last() instanceof this.EOLTokenClass)){
+        return false;
+      }
+
+      var l = stream.length;
+      for (var j = i; j<l; j++){
+        var c = stream[j];
+        if (!this.indent_char.has(c)){
           break;
         }
       }
-    }
 
-    var token = Token.EmptyToken(position);
-    position.setOffset(j);
-    return token;
-  });
-
-  Lexer.LexerError = Class('LexerError', Error)
-    .method('constructor', function(position){
-      this.position = position;
-      this.name = 'LexerError';
-      this.message = 'Lexer Error At Line ' + (position.line_nu + 1) + ', Char ' + (position.char_nu + 1);
-      Error.captureStackTrace(this, Lexer.LexerError);
-      // info at: http://www.bennadel.com/blog/2828-creating-custom-error-objects-in-node-js-with-error-capturestacktrace.htm 
-      //this.type = 'LexerError';
-      //this.description = this.message;
-      //Error.call(this, this.message);
-      //Error.captureStackTrace( this, ( implementationContext || AppError ) );
+      position.set(j);
+      return this.TokenClass(stream.slice(i,j));
     });
 
-  return Lexer;
+  var Ignore = Class('Ignore', BaseLexer)
+    .method('constructor', function(content_char_set){
+      this.content_char_set = content_char_set;
+    })
+    .method('parse', function(stream, position, token_stream){
+      var i = position.offset;
+
+      if (!this.content_char_set.has(stream[i])){
+        return false;
+      }
+
+      var l = stream.length;
+      for (var j=i; j<l; j++){
+        if (this.content_char_set.has(stream[j])){
+          break;
+        }
+      }
+      position.set(j);
+      return Token.IGNORE;
+    });
+
+  var EOL = Class('EOL', BaseLexer)
+    .method('constructor', function(TokenClass){})
+    .method('parse', function(stream, position, token_stream){
+      var i = position.offset;
+      if(stream[i] !== '\n'){
+        return false;
+      }
+      if (token_stream.last().instanceOf(Token.EmptyToken)){
+        return Token.IGNORE;
+      }
+      else {
+        var token = this.TokenClass(position);
+        position.set(i+1);
+        return token;
+      }
+    });
+
+  var CommentL = Class('Comment', Ignore)
+    .method('constructor', function(comment_start_char){
+      this.comment_start_char = comment_start_char;
+    })
+    .method('parse', function(stream, position, token_stream){
+      var i = position.offset;
+      if (stream[i] !== this.comment_start_char){
+        return false;
+      }
+      var l = stream.length
+      for (i; i<l; i++){
+        if (stream[i] === '\n'){
+          break;
+        }
+      }
+      position.set(i);
+      return Token.IGNORE;
+    });
+
+  var Lexer = Class('Lexer', Array)
+    .method('tryAll', function(func){
+      for (var i=0, l=this.length, result=false; i<l; i++){
+        result = func(this[i]);
+        if (result !== false) return result;
+      }
+      return false;
+    })
+    .method('parse', function(stream){
+      var token_stream = TokenStream();
+      var position = Position();
+      for (var i=position.offset,l=stream.length; i<l; i++){
+        var token = this.tryAll(function(lexer){
+          return lexer.parse(stream, position, token_stream);
+        });
+        if (token === false){
+          throw Error(position);
+        }
+        else{
+          token_stream.push(token);
+          i = position.offset - 1;
+        }
+      }
+    });
+
 });
