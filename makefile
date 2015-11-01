@@ -1,5 +1,5 @@
 
-source_file = $(shell ls src/)
+source_file = $(shell ls src | grep .js)
 objects = $(foreach o, $(source_file), $(subst .js, ,$(o)))
 target_files = $(foreach o, $(objects), dist/$(o).js)
 umdt = 'umdt'
