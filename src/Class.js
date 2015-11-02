@@ -32,8 +32,8 @@ define(function(){
           method = this_class.parent.prototype[name];
           if (!method){
             err = Error('method not found!');
-            //err.stack = err.stack.slice(0, -2);
-            throw new err;
+            err.stack = err.stack.slice(0, -2);
+            throw err;
           }
         }
         return method.apply(this, arguments);

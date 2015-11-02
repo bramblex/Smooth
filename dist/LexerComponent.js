@@ -27,7 +27,7 @@
   };
 
   
-define(['./Class', './Token'], function(Class, Token){
+define(['./Class', './Token', './CharSet'], function(Class, Token, CharSet){
 
   var BaseLexer = Class('BaseLexer', Object)
     .method('constructor', function(TokenClass, first_char_set, content_char_set){
@@ -39,18 +39,22 @@ define(['./Class', './Token'], function(Class, Token){
       var i= position.offset;
       var j=i;
 
-      if (!first_char_set.has(stream[i])){
+      if (!this.first_char_set.has(stream[i])){
         return false;
       }
 
       var l = stream.length;
       for (j; j<l; j++){
-        if (!content_char_set.has(stream[j])){
+        if (!this.content_char_set.has(stream[j])){
           break;
         }
       }
+      var token = this.TokenClass(stream.slice(i, j), position);
       position.set(j);
-      return this.TokenClass(stream.slice(i, j));
+      return token;
+    })
+    .method('mix', function(lexer){
+      return MixLexer(this, lexer);
     });
 
   var MixLexer = Class('MixLexer', BaseLexer)
@@ -59,14 +63,15 @@ define(['./Class', './Token'], function(Class, Token){
       this.lexer2 = lexer2;
     })
     .method('parse', function(stream, position, token_stream){
-      return this.lexer2.parse(this.lexer1.parse(stream, position, token_stream));
-    })
+      return this.lexer2.parse(this.lexer1.parse(stream, position, token_stream), position, token_stream);
+    });
 
   var Surround = Class('Surround', BaseLexer)
-    .method('constructor', function(TokenClass, surround_pair, content_char_set){
+    .method('constructor', function(TokenClass, surround_pair, content_char_set, allow_empty){
       this.TokenClass = TokenClass;
       this.surround_pair = surround_pair;
       this.content_char_set = content_char_set;
+      this.allow_empty = allow_empty;
     })
     .method('parse', function(stream, position, token_stream){
       var left_pair = this.surround_pair.left;
@@ -83,21 +88,64 @@ define(['./Class', './Token'], function(Class, Token){
       var j=i;
       for (j; j<l; j++){
         var c = stream[j];
-        if ( c === right_pair && c !== '\\'){
+        if ( c === right_pair){
           break;
         }
-        else if (!content_char_set.has(c)){
+        else if (!this.content_char_set.has(c)){
           return false;
         }
       }
+
+      var content = stream.slice(i, j);
+      if (!this.allow_empty && content.length === 0){
+        return false;
+      }
+      var token = this.TokenClass(content, position);
       position.set(j+1);
-      return this.TokenClass(stream.slice(i, j));
+      return token;
+    });
+
+  var Keyword = Class('Keyword', BaseLexer)
+    .method('constructor', function(TokenClass, keywords){
+      this.keywords = keywords;
+      this.TokenClass = TokenClass;
+    })
+    .method('parse', function(token, position, token_stream){
+      if ( this.keywords.indexOf(token.content) < 0){
+        return token;
+      }
+      return this.TokenClass(token.content, token.position);
+    });
+
+  var Pair = Class('Pair', BaseLexer)
+    .method('constructor', function(LeftTokenClass, RightTokenClass, left, right){
+      this.LeftTokenClass = LeftTokenClass;
+      this.RightTokenClass = RightTokenClass;
+      this.left = left;
+      this.right = right;
+    })
+    .method('parse', function(stream, position, token_stream){
+      var i = position.offset;
+      var c = stream[i];
+      if ( c === this.left){
+        var token = this.LeftTokenClass(c, position);
+        position.set(i+1);
+        return token; 
+      }
+      else if ( c === this.right){
+        var token = this.RightTokenClass(c, position);
+        position.set(i+1);
+        return token; 
+      }
+      else {
+        return false;
+      }
     });
 
   var Indent = Class('Indent', BaseLexer)
-    .method('constructor', function(TokenClass, EOLTokenClass, indent_char_set){
+    .method('constructor', function(TokenClass, EmptyTokenClass, indent_char_set){
       this.TokenClass = TokenClass;
-      this.EOLTokenClass = EOLTokenClass;
+      this.EmptyTokenClass = EmptyTokenClass;
       this.indent_char_set = indent_char_set;
     })
     .method('parse', function(stream, position, token_stream){
@@ -106,20 +154,21 @@ define(['./Class', './Token'], function(Class, Token){
       if(!this.indent_char_set.has(stream[i])){
         return false;
       }
-      if (!(token_stream.last() instanceof this.EOLTokenClass)){
+      if (!(token_stream.last().instanceOf(this.EmptyTokenClass))){
         return false;
       }
 
       var l = stream.length;
       for (var j = i; j<l; j++){
         var c = stream[j];
-        if (!this.indent_char.has(c)){
+        if (!this.indent_char_set.has(c)){
           break;
         }
       }
 
+      var token = this.TokenClass(stream.slice(i,j), position); 
       position.set(j);
-      return this.TokenClass(stream.slice(i,j));
+      return token;
     });
 
   var Ignore = Class('Ignore', BaseLexer)
@@ -135,7 +184,7 @@ define(['./Class', './Token'], function(Class, Token){
 
       var l = stream.length;
       for (var j=i; j<l; j++){
-        if (this.content_char_set.has(stream[j])){
+        if (!this.content_char_set.has(stream[j])){
           break;
         }
       }
@@ -144,20 +193,17 @@ define(['./Class', './Token'], function(Class, Token){
     });
 
   var EOL = Class('EOL', BaseLexer)
-    .method('constructor', function(TokenClass){})
+    .method('constructor', function(TokenClass){
+      this.TokenClass = TokenClass;
+    })
     .method('parse', function(stream, position, token_stream){
       var i = position.offset;
       if(stream[i] !== '\n'){
         return false;
       }
-      if (token_stream.last().instanceOf(Token.EmptyToken)){
-        return Token.IGNORE;
-      }
-      else {
-        var token = this.TokenClass(position);
-        position.set(i+1);
-        return token;
-      }
+      var token = this.TokenClass(position);
+      position.addLine();
+      return token;
     });
 
   var CommentL = Class('Comment', Ignore)
@@ -179,6 +225,112 @@ define(['./Class', './Token'], function(Class, Token){
       return Token.IGNORE;
     });
 
+  var NumberL = Class('NumberL', BaseLexer)
+    .method('constructor', function(TokenClass){
+      this.TokenClass = TokenClass;
+      this.digit = CharSet('0', '9');
+    })
+    .method('parse', function(stream, position, token_stream){
+      var i = position.offset;
+      var j = i;
+      var l = stream.length;
+      if(!this.digit.has(stream[i])){
+        return false;
+      }
+
+      var is_in_fractional = false;
+      for (j; j<l; j++){
+        var c = stream[j];
+        if (this.digit.has(c)){
+          continue;
+        }
+        else if (c === '.'){
+          if (is_in_fractional){
+            return false;
+          }
+          if (this.digit.has(stream[j+1])){
+            is_in_fractional = true;
+            continue;
+          }
+          else {
+            return false;
+          }
+        }
+        else {
+          break;
+        }
+      }
+
+      var token = this.TokenClass(stream.slice(i, j), position);
+      position.set(j);
+      return token;
+    });
+
+  var StringL = Class('StringL', BaseLexer)
+    .method('constructor', function(TokenClass){
+      this.TokenClass = TokenClass;
+      this.esacpe_map = {
+        'n': '\n',
+        'r': '\r',
+        't': '\t',
+        'b': '\b',
+        'f': '\f',
+      };
+    })
+    .method('parse', function(stream, position, token_stream){
+      var i = position.offset;
+      var l = stream.length;
+      var j = i;
+      var sign;
+      if(stream[i] === '"' || stream[i] === "'"){
+        sign = stream[i]; 
+      }
+      else {
+        return false;
+      }
+
+      var str = '';
+      var is_in_esacpe = false;
+      for (var j=i+1; j<l; j++){
+        var c = stream[j];
+        if (is_in_esacpe){
+          str = str + (this.esacpe_map[c] || c);
+          is_in_esacpe = false;
+        }
+        else if (c === '\\'){
+          is_in_esacpe = true;
+        }
+        else if (c === sign){
+          break;
+        }
+        else if (c === '\n'){
+          return false;
+        }
+        else {
+          str = str + c;
+          continue;
+        }
+      }
+      var token = this.TokenClass(stream.slice(i+1, j), position);
+      position.set(j+1);
+      return token;
+    });
+
+
+  return {
+    BaseLexer: BaseLexer,
+    Ignore: Ignore,
+    Surround: Surround,
+    Keyword: Keyword,
+    MixLexer: MixLexer,
+    Pair: Pair,
+    CommentL: CommentL,
+    EOL: EOL,
+    Indent: Indent,
+
+    NumberL: NumberL,
+    StringL: StringL,
+  }
 });
 
 

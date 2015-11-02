@@ -49,9 +49,10 @@ define(['./Class'], function(Class){
     })
     .method('addLine', function(){
       this.line_nu = this.line_nu + 1;
+      this.offset = this.offset + 1;
       this.char_nu = 1;
     })
-    .position('inspect', '*', function(){
+    .method('inspect', '*', function(){
       return 'Line ' + this.line_nu + ', Char ' + this.char_nu;
     });
 

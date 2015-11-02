@@ -30,10 +30,15 @@
 
   var Token = Class('Token', Object)
     .method('instanceOf', function(TokenClass){
-      return (this.instanceof TokenClass);
+      return (this instanceof TokenClass);
     })
     .method('inspect', '*', function(){
-      return [this.__class__.name, JSON.stringify(this.content)].join('#');
+      if (this.content !== undefined){
+        return [this.__class__.name, JSON.stringify(this.content)].join('#');
+      }
+      else {
+        return this.__class__.name;
+      }
     })
     .method('constructor', function(content, position){
       this.position = position.copy();
@@ -41,8 +46,29 @@
     });
 
   Token.IdentifierToken = Class('Identifier', Token);
+  Token.KeywordToken = Class('Keyword', Token);
 
   Token.SymbolToken = Class('Symbol', Token);
+
+  Token.PairToken = Class('Pair', Token);
+  Token.LeftPairToken = Class('LeftPair', Token.PairToken)
+    .method('match', function(token){
+      if (token.instanceOf(Token.RightPairToken)){
+        return true;
+      }
+      else {
+        return false;
+      }
+    });
+  Token.RightPairToken = Class('RightPair', Token.PairToken)
+    .method('match', function(token){
+      if (token.instanceOf(Token.LeftPairToken)){
+        return true;
+      }
+      else {
+        return false;
+      }
+    });
 
   Token.IndentToken = Class('Indent', Token)
     .method('constructor', function(content, position){
@@ -58,6 +84,19 @@
     });
 
   Token.LiteralToken.StringToken = Class('String', Token.LiteralToken);
+
+  Token.LiteralToken.BooleanToken = Class('Boolean', Token.LiteralToken)
+    .method('constructor', function(content, position){
+      this.position = position.copy();
+      if (content === 'true'){
+        this.content = true;
+      }
+      else if (content === 'false'){
+        this.content === 'false'
+      }
+    });
+
+  Token.LambdaToken = Class('Lambada', Token);
 
   Token.EmptyToken = Class('Empty', Token)
     .method('constructor', function(){})
