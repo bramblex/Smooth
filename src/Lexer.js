@@ -5,7 +5,7 @@ define(['./Class', './Token', './Position'], function(Class, Token, Position){
       this.position = position;
       this.name = 'Lexer Error'
       this.message = 'Lexer Error At ' + position.inspect();
-      Error.captureStackTrace(this, Lexer.LexerError);
+      Error.captureStackTrace(this, LexerError);
     });
 
   var PairStack = Class('PairStack', Array)
@@ -44,6 +44,12 @@ define(['./Class', './Token', './Position'], function(Class, Token, Position){
           this.pop();
           return token;
         }
+        else if (this.inPair()){
+          return token;
+        }
+      }
+      else if (token.instanceOf(Token.PairToken)){
+        this.pair_stack.push(token);
       }
       return TokenStream.upper('push').call(this, token);
     })

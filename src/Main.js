@@ -1,7 +1,6 @@
-
 define(
-  ['./Class', './Lexer', './LexerComponent', './CharSet', './Token'],
-  function(Class, Lexer, LC, CharSet, Token){
+  ['./Class', './Lexer', './LexerComponent', './CharSet', './Token', './PreProcess'],
+  function(Class, Lexer, LC, CharSet, Token, PreProcess){
 
   var Main = Class('Main', Object)
     .classmethod('parse', function(source_code){
@@ -16,15 +15,14 @@ define(
       lexer
         // ======== Identifier ========
         .push(
-          //LC.MixLexer(
           LC.BaseLexer( Token.IdentifierToken, alpha, alpha.or(digit))
             // Keyword
             .mix(LC.Keyword(
               Token.KeywordToken,
-              ['let', 'if', 'else', 'while', 'break', 'continue', 'return']))
-            // Boolean
+              ['let', 'if', 'else', 'while', 'break', 'continue', 'return',
+                'infixr', 'infixl', 'perfix']))
+            // Literal Boolean
             .mix(LC.Keyword(Token.LiteralToken.BooleanToken, ['true', 'false']))
-          //)
         )
         .push(LC.Surround(
           Token.IdentifierToken, {left: '(', right: ')'}, symbol, false))
@@ -48,7 +46,12 @@ define(
         .push(LC.CommentL('#'))
         .push(LC.Ignore(CharSet(' ')));
 
-      return lexer.parse(source_code);
+      var token_stream = lexer.parse(source_code)
+
+      var preprocess = PreProcess();
+      var block = preprocess.parse(token_stream);
+
+      return block;
     });
 
   return Main;

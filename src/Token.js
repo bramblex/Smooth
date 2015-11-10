@@ -1,4 +1,7 @@
 define(['./Class'], function(Class){
+  var pair = function(str){
+    return '(' + str + ')';
+  };
 
   var Token = Class('Token', Object)
     .method('instanceOf', function(TokenClass){
@@ -6,7 +9,7 @@ define(['./Class'], function(Class){
     })
     .method('inspect', '*', function(){
       if (this.content !== undefined){
-        return [this.__class__.name, JSON.stringify(this.content)].join('#');
+        return [this.__class__.name, pair(this.content)].join('#');
       }
       else {
         return this.__class__.name;
@@ -55,7 +58,10 @@ define(['./Class'], function(Class){
       this.content = parseFloat(content);
     });
 
-  Token.LiteralToken.StringToken = Class('String', Token.LiteralToken);
+  Token.LiteralToken.StringToken = Class('String', Token.LiteralToken)
+    .method('inspect', '*', function(){
+        return [this.__class__.name, pair(JSON.stringify(this.content))].join('#');
+    });
 
   Token.LiteralToken.BooleanToken = Class('Boolean', Token.LiteralToken)
     .method('constructor', function(content, position){

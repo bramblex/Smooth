@@ -89,6 +89,17 @@ define(['./Class', './Token', './CharSet'], function(Class, Token, CharSet){
       return this.TokenClass(token.content, token.position);
     });
 
+  var Exclude = Class('Exclude', BaseLexer)
+    .method('constructor', function(exclude_list){
+      this.exclude_list = exclude_list;
+    })
+    .method('parse', function(token, position, token_stream){
+      if (this.exclude_list.indexOf(token.content) >= 0){
+        return false;
+      }
+      return token;
+    });
+
   var Pair = Class('Pair', BaseLexer)
     .method('constructor', function(LeftTokenClass, RightTokenClass, left, right){
       this.LeftTokenClass = LeftTokenClass;
@@ -302,5 +313,6 @@ define(['./Class', './Token', './CharSet'], function(Class, Token, CharSet){
 
     NumberL: NumberL,
     StringL: StringL,
-  }
+    Exclude: Exclude,
+  };
 });
