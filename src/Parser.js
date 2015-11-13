@@ -1,4 +1,4 @@
-define(['./Class', './Token', './PreProcess'], function(Class, Token, PreProcess){
+define(['./Class', './Token', './PreProcess', './Environment'], function(Class, Token, PreProcess, Environment){
 
   var ParserError = Class('ParserError', Error)
     .method('constructor', function(position){
@@ -10,15 +10,15 @@ define(['./Class', './Token', './PreProcess'], function(Class, Token, PreProcess
 
   var Parser = (function(){
 
-    var Block = PreProcess.Block;
-    var Line = PreProcess.Line;
-
     var ExpressionParser = function ExpressionParser(expression, environmnet){
     };
     
     return Class('Parser', Array)
       .method('parse', function(block){
-      });
+        var env = Environment();
+      })
+      .method('');
+
   })();
 
   return Parser
