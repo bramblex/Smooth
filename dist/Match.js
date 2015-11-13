@@ -84,6 +84,7 @@
       return this.captured;
     })
     .method('reset', function(){
+      console.log('reset');
       this.captured = [];
       return MatchDFA.upper('reset').call(this);
     })

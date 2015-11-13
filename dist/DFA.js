@@ -37,6 +37,9 @@ define(['./Class', './EventEmitter'], function(Class, EventEmitter){
       else {
         return UniqueArray.upper('push').call(this, item);
       }
+    })
+    .method('inspect', '*', function(){
+      return ['[', this.__class__.name, this.join(', '), ']'].join(' ');
     });
 
   var State = Class('State', Object)
@@ -84,6 +87,9 @@ define(['./Class', './EventEmitter'], function(Class, EventEmitter){
         }
       }
       return result;
+    })
+    .method('inspect', '*', function(){
+      return ['[', this.__class__.name, this.name, ']'].join(' ');
     });
 
   var EndState = State.extend('EndState');
@@ -121,7 +127,7 @@ define(['./Class', './EventEmitter'], function(Class, EventEmitter){
     })
 
     .method('transitionRule', (function(){
-      var rule_reg = /^\s*([\w\*]+)\s*\(\s*(\w+)\s*\)\s*=>\s*(\w+)\s*$/;
+      var rule_reg = /^\s*(\w+)\s*\(\s*(\w+)\s*\)\s*=>\s*(\w+)\s*$/;
       return function(rule_string){
         var matched = rule_string.match(rule_reg);
         if (matched){
@@ -159,18 +165,15 @@ define(['./Class', './EventEmitter'], function(Class, EventEmitter){
       this.state = this.transitions[start_state_name];
       this.start_state = this.state;
 
-      this.input = this.__input__;
-      this.reset = this.__reset__;
-
       this.emit('change');
       return this;
     })
 
-    .method('__reset__', function(){
+    .method('reset', function(){
       this.state = this.start_state;
     })
 
-    .method('__input__', function(input){
+    .method('input', function(input){
 
       var last_state_name = this.state.name;
       var result = this.state.input(input);

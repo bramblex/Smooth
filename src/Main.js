@@ -13,14 +13,16 @@ define(
 
       var lexer = Lexer();
       lexer
+        // ======== Indent =======
+        .push(LC.Indent(Token.IndentToken, Token.EmptyToken, indent))
         // ======== Identifier ========
         .push(
           LC.BaseLexer( Token.IdentifierToken, alpha, alpha.or(digit))
             // Keyword
             .mix(LC.Keyword(
               Token.KeywordToken,
-              ['let', 'if', 'else', 'while', 'break', 'continue', 'return',
-                'infixr', 'infixl', 'perfix']))
+              ['let', 'if', 'while', 'break', 'continue', 'return',
+                'infix', 'perfix']))
             // Literal Boolean
             .mix(LC.Keyword(Token.LiteralToken.BooleanToken, ['true', 'false']))
         )
@@ -40,8 +42,6 @@ define(
           Token.LambdaToken, {left: 'λ', right: '.'}, alpha, false))
         // ======== EOL ======== 
         .push(LC.EOL(Token.EOLToken))
-        // ======== Indent =======
-        .push(LC.Indent(Token.IndentToken, Token.EmptyToken, indent))
         // ======== Ignore Space And Comment ========
         .push(LC.CommentL('#'))
         .push(LC.Ignore(CharSet(' ')));
@@ -51,40 +51,9 @@ define(
       var preprocess = PreProcess();
       var block = preprocess.parse(token_stream);
 
-      //return block;
-      return '';
+      return block;
+      //return '';
     });
-
-
-  var Match = require('./Match');
-  var Position = require('./Position');
-  var position = Position();
-
-  var match_rule = [
-    Match.Unit(Token.KeywordToken, 'let'),
-    Match.Unit(Token.IdentifierToken).noneOrMore().capture(),
-    Match.Unit(Token.SymbolToken, '='),
-    Match.Unit(Token.IdentifierToken).noneOrMore().capture()
-  ]
-
-  var token_line = [
-    Token.KeywordToken('let', position),
-    Token.IdentifierToken('aaa', position),
-    Token.IdentifierToken('aaa', position),
-    Token.SymbolToken('=', position),
-    Token.IdentifierToken('aaa', position),
-    Token.IdentifierToken('aaa', position),
-  ]
-
-  var dfa = Match.createByRule(match_rule);
-
-  token_line.forEach(function(token){
-    dfa.input(token);
-  });
-
-  console.log(match_rule);
-  console.log(token_line);
-  console.log(dfa.captured);
 
   return Main;
 });

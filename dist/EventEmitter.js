@@ -109,7 +109,7 @@ define(['./Class'], function(Class){
   .alias('on', 'addListener')
   .alias('off', 'removeListener')
   .alias('once', 'addOnceListener')
-  .alias('trigger', 'EventEmitter');
+  .alias('trigger', 'emitEvent');
 
   return EventEmitter;
 });

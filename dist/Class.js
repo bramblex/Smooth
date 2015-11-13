@@ -27,7 +27,7 @@
   };
 
   
-define(function(){
+define(['./Utils'], function(Utils){
 
   var named = function named(name, func){
     var code = func.toString();
@@ -82,7 +82,7 @@ define(function(){
     this[name] = eval(named(this.name+'_class_'+name, function(){
       return func.apply(this, arguments);
     }));
-
+    this[name]['is_classmethod'] = true;
     return this;
   }
 
@@ -91,7 +91,8 @@ define(function(){
   };
 
   var alias = function alias(name, method){
-    this.prototype[name] = this.prototype[method];
+    this.method(name, '*', this.prototype[method]);
+    this.prototype[name]['is_alias_to'] = method;
     return this;
   };
 
@@ -102,7 +103,41 @@ define(function(){
     return this_class.parent.prototype[name];
   };
 
+  var inspect =  function inspect(){
+    var this_class = this;
+    var methods = Utils.attrs(this.prototype)['all']
+      .map(function(method_name){
+        var method = this_class.prototype[method_name];
+        var method_class = method.__class__;
+        var is_alias_to = method.is_alias_to;
+        if (is_alias_to){
+          var method_content = method_name + ' -> '+ is_alias_to;
+        }
+        else {
+          var method_content = method_name;
+        }
+        if (this_class === method_class){
+          return method_content;
+        }
+        else{
+          return method_class.name + '::' + method_content;
+        }
+      });
+    var methods_content = 'methods: \n'
+      + Utils.indent(2, methods.join('\n'));
+    var classmethods = Utils.attrs(this)['self']
+      .filter(function(m){ return this_class[m]['is_classmethod'] || false; });
+    var classmethods_content = 'classmethods: \n'
+      + Utils.indent(2, classmethods.join('\n'));
+    var content = Utils.indent(2, [classmethods_content, methods_content].join('\n\n'));
+    return Utils.render(
+      '[ Class <% class_name %> extend <% parent_class_name %>\n\n<% content %>\n]',
+      {class_name: this.name, parent_class_name: this.parent.name, content: content});
+  };
+
+
   var Class = function Class(name, parent){
+    var parent  = parent || Object;
 
     var child = eval(named(name, function(){
       var this_class = arguments.callee;
@@ -137,6 +172,7 @@ define(function(){
     child.alias = alias;
     child.upper = upper;
     child.name = name;
+    child.inspect = inspect;
 
     child.method('constructor', function(){
       if (child.upper('constructor'))

@@ -1,20 +1,6 @@
-define(['./Class', './Token'], function(Class, Token){
+define(['./Class', './Token', './Utils'], function(Class, Token, Utils){
 
-  var indentBlock = (function(){
-    var indentStr = function indentStr(n, s){
-      var n = n || 0;
-      var s = s || ' ';
-      var str = '';
-      for (var i=0; i<n; i++){
-        str += s;
-      }
-      return str;
-    }
-    return function indentBlock(n, b, s){
-      var indent_str = indentStr(n, s);
-      return b.replace(/^/g, indent_str).replace(/\n/g, '\n'+indent_str);
-    };
-  })();
+  var indentBlock = Utils.indent;
 
   var IndentError = Class('IndentError', Error)
     .method('constructor', function(position){
@@ -80,25 +66,20 @@ define(['./Class', './Token'], function(Class, Token){
       if (!first){
         return Block();
       }
-      if (first.instanceOf(Token.IndentToken)){
+      if (first.content !== 0){
         throw IndentError(first.position);
       }
 
       var block_stack = BlockStack();
 
       var is_new_line = true;
-      var current_line = Line();
+      var current_line, current_indent, top_indent;
       for (var i=0, l=token_stream.length; i<l; i++){
         var token = token_stream[i];
-        if (is_new_line){
-          is_new_line = false;
-          if(token.instanceOf(Token.IndentToken)){
-            var current_indent = token.content; 
-          }else{
-            var current_indent = 0;
-            current_line.push(token);
-          }
-          var top_indent = block_stack.top_indent;
+        if (token.instanceOf(Token.IndentToken)){
+          current_line = Line();
+          current_indent = token.content;
+          top_indent = block_stack.top_indent;
           if (current_indent === top_indent){
             continue;
           }
@@ -108,7 +89,7 @@ define(['./Class', './Token'], function(Class, Token){
           else if (current_indent < top_indent){
             while (true){
               block_stack.pop();
-              var top_indent = block_stack.top_indent;
+              top_indent = block_stack.top_indent;
               if (top_indent === current_indent){
                 break;
               }
@@ -120,10 +101,8 @@ define(['./Class', './Token'], function(Class, Token){
         }
         else if (token.instanceOf(Token.EOLToken)){
           block_stack.top_block.push(current_line);
-          is_new_line = true;
-          current_line = Line();
         }
-        else {
+        else{
           current_line.push(token);
         }
       }

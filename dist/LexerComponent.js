@@ -162,11 +162,12 @@ define(['./Class', './Token', './CharSet'], function(Class, Token, CharSet){
     .method('parse', function(stream, position, token_stream){
 
       var i = position.offset;
-      if(!this.indent_char_set.has(stream[i])){
+      var is_in_new_line = token_stream.last().instanceOf(this.EmptyTokenClass); 
+      if (!is_in_new_line){
         return false;
       }
-      if (!(token_stream.last().instanceOf(this.EmptyTokenClass))){
-        return false;
+      if(!this.indent_char_set.has(stream[i])){
+        return this.TokenClass('', position);
       }
 
       var l = stream.length;
