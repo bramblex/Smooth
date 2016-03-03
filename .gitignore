@@ -1,3 +1,6 @@
-node_modules/*
-.DS_Store
-example/*.js
+/bower_components/
+/node_modules/
+/.pulp-cache/
+/output/
+/.psci*
+/src/.webpack.js

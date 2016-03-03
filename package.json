@@ -1,6 +1,6 @@
 {
     "name": "BlxScript",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "",
     "repository": {
         "type": "git",
@@ -8,9 +8,7 @@
     },
     "main": "./dist/Main.js",
     "bin": {
-        "blxscript" : "./bin/blxscript",
-        "blxscriptc": "./bin/blxscriptc",
-        "blxscriptcps": "./bin/blxscriptcps"
+        "blxscriptc": "./bin/blxscriptc"
     },
     "author": "brambles",
     "license": "ISC",
@@ -19,7 +17,6 @@
     },
     "homepage": "https://github.com/bramblex/BlxScript#readme",
     "dependencies": {
-        "js-beautify": "^1.5.10"
     }
 }
 
