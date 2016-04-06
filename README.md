@@ -1,8 +1,11 @@
 #BlxScript
+
+**BlxScript 正在用 PureScript 重构中，代码在 develop 分支**
+
 1. [简介](#简介)
 2. [安装](#安装)
 2. [语法](#语法)
-<!--4. [CPS变换](#CPS变换)-->
+4. [CPS变换](#CPS变换)
 
 #简介
 BlxScript是我闲蛋疼自己设计的语言，由Lambda表达式扩展而来，函数式特性非常强的语言。BlxScript能编译成JS再执行。你可以在这里测试以及尝试。[http://bramblex.github.io/BlxScript](http://bramblex.github.io/BlxScript)
