@@ -5,11 +5,14 @@ newtype Module = Module (Array Binding)
 
 data Binding = Binding String Expression
 
-data Expression = Val String
+data Expression = Lit Literal
+                | Val String
                 | Lam String Expression
                 | App Expression Expression
-                | Lit Literal
+
                 | FFI String
+                | LetIn (Array Binding) Expression
+                | IfElse Expression Expression Expression
 
 data KeyValueTuple = KeyValueTuple String Expression
 data Literal = LNum Number
@@ -17,5 +20,7 @@ data Literal = LNum Number
              | LBool Boolean
              | LArr (Array Expression)
              | LObj (Array KeyValueTuple)
+             | LRegex String
              | LNull
              | LUndefined
+

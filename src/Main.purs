@@ -17,7 +17,7 @@ import Compiler
 --   ,Binding "main" (Lam "unit" $ App (Val "print") (Lit $ LStr "Hello World!"))]
   -- log $ compile main_module ++ ".main(null);"
 
-code = "aa bb cc \\aaa -> dd ee (ff aaa)"
+code = "main asd dfg = aa bb cc \\aaa bbb ccc-> dd ee (ff aaa)"
 
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do

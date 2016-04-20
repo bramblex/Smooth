@@ -16,11 +16,11 @@ instance isASTModule :: IsAST Module where
                         ++"};})())"
 
 instance isASTBinding :: IsAST Binding where
-  compile (Binding n e) = "const $$" ++ n ++ " = " ++ compile e
+  compile (Binding n e) = "const $$" ++ n ++ "=" ++ compile e
 
 instance isASTExpression :: IsAST Expression where
   compile (Val n) = "$$" ++ n
-  compile (Lam n e) = "((" ++ n ++ ")=>" ++ compile e ++ ")"
+  compile (Lam n e) = "(($$" ++ n ++ ")=>" ++ compile e ++ ")"
   compile (App l r) = "(" ++ compile l ++ "(" ++ compile r ++ ")" ++ ")"
   compile (Lit l) = compile l
   compile (FFI c) = "(" ++ c ++ ")"
