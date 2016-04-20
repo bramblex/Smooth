@@ -1,9 +1,7 @@
 
 module AST where
 
-import Data.Tuple (Tuple())
-
-newtype Scope = Scope (Array Binding)
+newtype Module = Module (Array Binding)
 
 data Binding = Binding String Expression
 
@@ -11,11 +9,13 @@ data Expression = Val String
                 | Lam String Expression
                 | App Expression Expression
                 | Lit Literal
+                | FFI String
 
+data KeyValueTuple = KeyValueTuple String Expression
 data Literal = LNum Number
              | LStr String
-             | LBoo Boolean
+             | LBool Boolean
              | LArr (Array Expression)
-             | LObj (Array (Tuple String Expression))
-             | LNul
-             | LUnd
+             | LObj (Array KeyValueTuple)
+             | LNull
+             | LUndefined
