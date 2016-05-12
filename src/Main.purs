@@ -5,11 +5,19 @@ import Prelude
 import Control.Monad.Eff
 import Control.Monad.Eff.Console
 
-import Data.Either
+main = log "hello world"
 
-import AST
-import Parser
-import Compiler
+-- import Lexer
+
+-- main :: forall e. Eff (console :: CONSOLE | e) Unit
+-- main = do
+--   print $ runlexer ("")
+
+-- import Data.Either
+
+-- import AST
+-- import Parser
+-- import Compiler
 
 -- main_module =
 --   Module
@@ -17,10 +25,14 @@ import Compiler
 --   ,Binding "main" (Lam "unit" $ App (Val "print") (Lit $ LStr "Hello World!"))]
   -- log $ compile main_module ++ ".main(null);"
 
-code = "main asd dfg = aa bb cc \\aaa bbb ccc-> dd ee (ff aaa)"
+-- code = "main asd dfg = aa bb cc \\aaa bbb ccc-> dd ee (ff aaa)"
 
-main :: forall e. Eff (console :: CONSOLE | e) Unit
-main = do
-  case parse code of
-    Left err -> log $ show err
-    Right ast -> log $ compile ast
+-- main :: forall e. Eff (console :: CONSOLE | e) Unit
+-- main = do
+--   case parse code of
+--     Left err -> log $ show err
+--     Right ast -> log $ compile ast
+
+-- main :: forall e. Eff (console :: CONSOLE | e) Unit
+-- main = do
+--   print $ parse "abcdefg"

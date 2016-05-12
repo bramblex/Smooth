@@ -1,6 +1,6 @@
 {
-  "name": "BlxScript",
-  "version": "1.0.0",
+  "name": "Smooth",
+  "version": "0.0.1",
   "moduleType": [
     "node"
   ],
@@ -12,6 +12,8 @@
   ],
   "dependencies": {
     "purescript-console": "^0.1.0",
-    "purescript-parsing": "~0.8.0"
+    "purescript-parsing": "~0.8.0",
+    "purescript-generics": "^0.7.2",
+    "purescript-globals": "^0.2.2"
   }
 }

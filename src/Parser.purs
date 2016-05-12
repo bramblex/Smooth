@@ -1,28 +1,46 @@
 
-module Parser where
+-- module Parser where
 
-import Prelude
-import Control.Monad.Eff
-import Control.Monad.Eff.Console
+-- import Prelude
 
-import Control.Lazy (fix)
+-- import Prelude
+-- import Control.Monad.Eff
+-- import Control.Monad.Eff.Console
 
-import Control.Apply ((*>), (<*))
-import Data.Array (many, some, head, tail, length)
-import Data.String (fromCharArray)
-import Data.Foldable (foldl)
-import Data.List (toUnfoldable)
+-- import Control.Lazy (fix)
 
-import Data.Maybe
+-- import Control.Apply ((*>), (<*))
+-- import Data.Array (many, some, head, tail, length)
+-- import Data.String (fromCharArray)
+-- import Data.Foldable (foldl)
+-- import Data.List (toUnfoldable)
+-- import Data.Either
+-- import Data.Tuple
 
-import Text.Parsing.Parser (Parser(..), runParser, ParseError())
-import Text.Parsing.Parser.String (skipSpaces, string, noneOf)
-import Text.Parsing.Parser.Token (letter, digit)
-import Text.Parsing.Parser.Combinators (between, option, sepEndBy)
-import Text.Parsing.Parser.Expr
-import Control.Alt ((<|>))
+-- import Data.Maybe
 
-import AST
+-- import Text.Parsing.Parser
+-- import Text.Parsing.Parser.String (skipSpaces, string, noneOf, char)
+-- import Text.Parsing.Parser.Token (letter, digit)
+-- import Text.Parsing.Parser.Combinators (between, option, sepEndBy)
+-- import Text.Parsing.Parser.Expr
+-- import Text.Parsing.Parser.Pos
+-- import Control.Alt ((<|>))
+
+-- import Control.Monad.State (get, state)
+
+-- import AST
+
+-- type S = { input :: String, result :: Either ParseError Position, consumed :: Boolean, position :: Position }
+
+-- getPosition :: forall s m .(Monad m) => ParserT s m Position
+-- getPosition = ParserT $ \(PState { input: s, position: pos }) ->
+--   return { consumed: false, input: s, result: Right pos, position: pos }
+
+-- testParser :: Parser String Position
+-- testParser = letter >>= getPosition
+
+-- parse = flip runParser (many testParser)
 
 -- type SParser a = Parser String a
 
