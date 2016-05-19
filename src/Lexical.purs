@@ -2,14 +2,14 @@ module Lexical where
 
 import Prelude
 import Control.Monad.Trans (lift)
-import Control.Monad.State (State(), modify, gets)
+import Control.Monad.State (State(), modify, gets, evalState)
 import Control.Apply ((*>), (<*))
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 
-import Text.Parsing.Parser (ParserT(..), PState(..), fail)
+import Text.Parsing.Parser (ParserT(..), PState(..), fail, runParser, ParseError(..), Parser(..))
 import Text.Parsing.Parser.Combinators (try, option, between, choice, sepBy)
-import Text.Parsing.Parser.Pos (Position(..))
+import Text.Parsing.Parser.Pos (Position(..), initialPos)
 import Text.Parsing.Parser.String
   (skipSpaces, satisfy, string, eof, char, oneOf, anyChar)
 
@@ -17,260 +17,426 @@ import Data.List (List(..), tail, head, last, toUnfoldable, many, some, singleto
 import qualified Data.Array as Array
 import Data.Maybe (fromMaybe, Maybe(..))
 import Data.Either (Either(..))
-import Data.String (fromCharArray, joinWith)
+import Data.String (fromCharArray, joinWith, toCharArray)
 import Data.Char (toString)
 import Data.Char.Unicode (isAlpha, isDigit, isHexDigit, isPrint)
 import Data.Tuple (Tuple(..))
 import Data.Generic (class Generic, gShow, gEq, gCompare)
 
--- Define Token
 data TOKEN
   = ID String
-  | KEY String
-  | OP String
-  | SYM String
-  | RAW String
-  | LIT String
-  | BLOCKL | BLOCKR
-  | STATEL | STATER
-  | NL
+  | KEYWORD String
+  | OPERATOR String
+  | SYMBOL String
+  | LITERAL String
+  | INDENT Int
+  | COMMENT String
 
 derive instance genericTOKEN :: Generic TOKEN
-instance showTOKEN :: Show TOKEN where show = gShow
+instance showTOKEN :: Show TOKEN where 
+  show (ID s) = "ID " ++ s
+  show (KEYWORD s) = "KEYWORD " ++ s
+  show (OPERATOR s) = "OPERATOR " ++ s 
+  show (SYMBOL s) = "OPERATOR " ++ s
+  show (LITERAL s) = "LITERAL " ++ s
+  show (INDENT i) = "INDENT " ++ show i
+  show (COMMENT s) = "COMMENT " ++ s
+  
 instance eqTOKEN :: Eq TOKEN where eq = gEq
 
-newtype PositionToken = PositionToken {position::Position, token::TOKEN}
-type TokenStream = List PositionToken
+newtype PosToken = PosToken {pos:: Position, tok:: TOKEN}
+instance showPosToken :: Show PosToken where
+  show (PosToken {pos:Position {line:line, column:column}, tok: tok}) =
+    "["++show tok++" (" ++show line++ ","++show column++")"++"]"
 
--- Get Position --
 getPos :: forall s m. (Monad m) => ParserT s m Position
 getPos = ParserT $ \(PState { input: s, position: pos }) ->
   return { input: s, consumed: false, result: Right pos, position: pos }
 
-makeToken :: Position -> TOKEN -> PositionToken
-makeToken pos tok = PositionToken {position: pos, token: tok}
+mkPosTok :: Position -> TOKEN -> PosToken
+mkPosTok pos tok = PosToken {pos: pos, tok: tok}
 
-mkStream :: Position -> TOKEN -> TokenStream
-mkStream p t = singleton $ makeToken p t
-
--- Indent State --
-data Indent = BlockIndent Int
-            | StateIndent Int
-            | ParenIndent Int
-            | SquareIndent Int
-            | BraceIndent Int
-            | NoneIndent
-
-type IndentStack = List Indent
-
--- Some Utils Function --
 fromCharList :: List Char -> String
 fromCharList = fromCharArray <<< toUnfoldable
 
 joinListWith :: String -> List String -> String
 joinListWith sep = joinWith sep <<< toUnfoldable
 
-eol :: forall m. (Monad m) => ParserT String m Unit
-eol = (try (string "\r\n") <|> string "\r" <|> string "\n")
-      *> return unit
-
-indent :: forall m. (Monad m) => ParserT String m Int
-indent = length <$> many (satisfy \c -> c == ' ' || c == '\t')
-
--- Indent Handle Parser --
-type TokenParser a = ParserT String (State IndentStack) a
-
-topIndent :: TokenParser Indent
-topIndent = lift $  gets (fromMaybe NoneIndent <<< head)
-
-topIndentNum :: TokenParser Int
-topIndentNum = do
-  rest <- topIndent
-  return $ case rest of
-    BlockIndent n -> n
-    StateIndent n -> n
-    ParenIndent n -> n
-    SquareIndent n -> n
-    BraceIndent n -> n
-    NoneIndent -> 0
-
-popIndent :: TokenParser Unit
-popIndent = lift $ modify (fromMaybe (Nil::List Indent) <<< tail)
-
-pushIndent :: Indent -> TokenParser Unit
-pushIndent i = lift $ modify (Cons i)
-
--- Block and Statement Block Start --
-blockIndent :: TokenParser TokenStream
-blockIndent = do
-  skipSpaces
-  pos@(Position {line: _, column: col}) <- getPos
-  pushIndent (BlockIndent col)
-  return $ singleton $ makeToken pos BLOCKL
-
-stateIndent :: TokenParser TokenStream
-stateIndent = do
-  skipSpaces
-  pos@(Position {line: _, column: col}) <- getPos
-  pushIndent (StateIndent col)
-  return $ singleton $ makeToken pos STATEL
-
--- Handle Newline And Parens
-newline :: TokenParser TokenStream
-newline = do
-  ind <- (try $ skipSpaces *> eof *> return 0)
-       <|> (fromMaybe 0 <<< last <$> some (eol *> indent))
-  pos <- getPos
-  fix $ \handle -> do
-    rest <- topIndent
-    case rest of
-      ParenIndent n -> if ind > n then return Nil else fail "Indent Error"
-      SquareIndent n -> if ind > n then return Nil else fail "Indent Error"
-      BraceIndent n -> if ind > n then return Nil else fail "Indent Error"
-      NoneIndent -> if ind /= 0 then return Nil else fail "Indent Error"
-      StateIndent n -> case compare ind n of
-        EQ -> return $ mkStream pos NL
-        GT -> pushIndent (StateIndent ind) *> (return $ mkStream pos STATEL)
-        LT -> do
-          popIndent
-          n' <- topIndentNum
-          case compare ind n' of
-            GT -> fail "Indent Error"
-            _ -> (++) (mkStream pos STATER) <$> handle
-      BlockIndent n -> case compare ind n of
-        EQ -> return $ mkStream pos NL
-        GT -> return Nil
-        LT -> do
-          popIndent
-          n' <- topIndentNum
-          case compare ind n' of
-            GT -> fail "Indent Error"
-            _ -> (++) (mkStream pos BLOCKR) <$> handle
-
-parrten :: TokenParser TokenStream
-parrten = left <|> right
-  where left = do
-          pos <- getPos
-          tok <- SYM <$> (string "(" <|> string "[" <|> string "{")
-          n <- topIndentNum
-          case tok of
-            SYM "(" -> pushIndent $ ParenIndent n
-            SYM "[" -> pushIndent $ SquareIndent n
-            SYM "{" -> pushIndent $ BraceIndent n
-            _ -> fail "Parse Token Error"
-          return $ mkStream pos tok
-
-        right = do
-          pos <- getPos
-          tok <- SYM <$> (string ")" <|> string "]" <|> string "}")
-          fix $ \handle -> do
-            top <- topIndent
-            case top of
-              NoneIndent -> fail "Indent Error"
-              BlockIndent _ -> popIndent *> ((++) (mkStream pos BLOCKR) <$> handle)
-              StateIndent _ -> popIndent *> ((++) (mkStream pos STATER) <$> handle)
-              ParenIndent _ -> if tok == SYM ")" then popIndent *> return (mkStream pos tok) else fail "Paren Error"
-              SquareIndent _ -> if tok == SYM "]" then popIndent *> return (mkStream pos tok) else fail "Paren Error"
-              BraceIndent _ -> if tok == SYM "}" then popIndent *> return (mkStream pos tok) else fail "Paren Error"
-
--- ID / Keywrod / Symobl / Operator Token Parser --
-
-isIdStart :: Char -> Boolean
-isIdStart c = isAlpha c && c == '_'
+-- Token Parser
+isIdHead :: Char -> Boolean
+isIdHead c = isAlpha c || c == '_' 
 
 isIdBody :: Char -> Boolean
-isIdBody c = isAlpha c && isDigit c && c == '_'
+isIdBody c = isAlpha c || isDigit c || c == '_'
 
-isReservedWord :: String -> Boolean
-isReservedWord word = (<=) 0 $ fromMaybe (-1) $ Array.elemIndex word
-                      [ "let", "in", "where", "if", "then", "else"
-                      , "case", "of", "with", "do"
-                      , "switch", "return", "while", "break", "continue"
-                      , "infixr", "infixl", "prefix", "postfix"
-                      , "import", "as", "export"
-                      , "true", "false", "null", "undefined" ]
+isReserved :: String -> Boolean
+isReserved word = (<=) 0 <<< fromMaybe (-1) <<< Array.elemIndex word $
+                  [ "let", "in", "where", "if", "then", "else"
+                  , "case", "of", "with", "do"
+                  , "switch", "return", "while", "break", "continue"
+                  , "infixr", "infixl", "prefix", "postfix"
+                  , "import", "as", "export"
+                  , "true", "false", "null", "undefined"]
 
-identifier :: TokenParser TokenStream
-identifier = do
-  pos <- getPos
-  str <- fromCharList <$> (Cons <$> satisfy isIdStart <*> (many $ satisfy isIdBody))
-  if isReservedWord str
-    then case str of
-      "true" -> return $ mkStream pos $ LIT str
-      "false" -> return $ mkStream pos $ LIT str
-      "null" -> return $ mkStream pos $ LIT str
-      "undefined" -> return $ mkStream pos $ LIT str
-      "where" -> (++) (mkStream pos $ KEY str) <$> blockIndent
-      "of" -> (++) (mkStream pos $ KEY str) <$> blockIndent
-      "do" -> (++) (mkStream pos $ KEY str) <$> blockIndent
-      _ -> return $ mkStream pos $ KEY str
-    else return $ mkStream pos $ ID str
+wordTok :: Parser String PosToken
+wordTok = mkPosTok <$> getPos <*> tok
+  where word = fromCharList <$> (Cons <$> satisfy isIdHead <*> many (satisfy isIdBody)) 
+        tok = do
+          str <- word
+          return $ if isReserved str
+                   then case str of
+                     "true" -> LITERAL str
+                     "false" -> LITERAL str
+                     "null" -> LITERAL str
+                     "undefined" -> LITERAL str
+                     _ -> KEYWORD str
+                   else ID str
 
-isReservedSymbol :: String -> Boolean
-isReservedSymbol word = (<=) 0 $ fromMaybe (-1) $ Array.elemIndex word
-                      [ "=", "->", "<-", ".", ":", ",", "\\"]
+isSymChar :: Char -> Boolean
+isSymChar c = (<=) 0 <<< fromMaybe (-1) <<< Array.elemIndex c <<< toCharArray $ 
+             "~!@$%^&*_+|:<>?-=;,./"
 
-isOpChar :: Char -> Boolean
-isOpChar c = (<=) 0 $ fromMaybe (-1) $ Array.elemIndex c 
-             ['~','!','@','$','%','^','&','*','_','+','-','=','|','<','>','?','/','.',':',',','\\']
+isSymed :: String -> Boolean
+isSymed word = (<=) 0 <<< fromMaybe (-1) <<< Array.elemIndex word $
+               [ "=", "->", "<-", ":", ";", ",", "." ]
 
-operator :: TokenParser TokenStream
-operator = do
-  pos <- getPos
-  str <- fromCharList <$> some (satisfy isOpChar)
-  if isReservedSymbol str
-    then case str of
-      "=" -> (skipSpaces *> eol *> ((++) (mkStream pos $ SYM str) <$> stateIndent))
-             <|> return (mkStream pos (SYM str))
-      _ -> return $ mkStream pos $ SYM str
-    else return $ mkStream pos $ OP str
+symTok :: Parser String PosToken
+symTok = mkPosTok <$> getPos <*> (patok <|> symtok)
+  where patok = SYMBOL <<< toString <$> oneOf ['(', ')', '[', ']', '{', '}', '\\']
+        symtok = do
+          str <- fromCharList <$> some (satisfy isSymChar)
+          return $ if isSymed str then SYMBOL str else OPERATOR str
 
--- General Parser --
-hexNum :: TokenParser String
-hexNum = try $ string "0x" *>
-         ((++) "0x" <<< fromCharList <$> many (satisfy isHexDigit))
-
-number :: TokenParser String
-number = do
-  int <- some (satisfy isDigit)
-  dec <- option Nil do
-    point <- char '.'
-    Cons point <$> some (satisfy isDigit)
-  return <<< fromCharList $ int ++ dec
-
-surroundBy :: forall m.(Monad m) => Char -> ParserT String m String
-surroundBy c = between (char c) (char c)
-                   ( mksurround cStr <<< joinListWith "" <$> many contents)
-  where contents = try (string ("\\" ++ cStr))
-                   <|> (toString <$> satisfy (\c' -> c /= c' && isPrint c'))
+surround :: forall m.(Monad m) => Char -> ParserT String m String
+surround c = between (char c) (char c) ( mksurround cStr <<< joinListWith "" <$> many contents)
+  where contents = try (string ("\\" ++ cStr)) <|> (toString <$> satisfy (\c' -> c /= c' && isPrint c'))
         cStr = toString c
         mksurround c' str = c' ++ str ++ c'
 
-strlit :: TokenParser String
-strlit = surroundBy '\'' <|> surroundBy '"'
+surround' :: forall m.(Monad m) => Char -> ParserT String m String
+surround' c = between (char c) (char c) (joinListWith "" <$> many contents)
+  where contents = try ((string ("\\" ++ cStr)) *> return cStr) <|> (toString <$> satisfy (\c' -> c /= c' && isPrint c'))
+        cStr = toString c
 
-regexp :: TokenParser String
-regexp = do
-  exp <- surroundBy '/'
-  flags <- fromCharList <$> option Nil (many $ oneOf ['g', 'i', 'm'])
-  return $ exp ++ flags
+litTok :: Parser String PosToken
+litTok = mkPosTok <$> getPos <*> (LITERAL <$> (hex <|> num <|> str <|> reg <|> raw))
+  where hex = (++) <$> try (string "0x") <*> (fromCharList <$> some (satisfy isHexDigit))
+        num = fromCharList <$> do
+          int <- some (satisfy isDigit)
+          dsc <- option Nil (Cons '.' <$> (char '.' *> some (satisfy isDigit)))
+          return $ int ++ dsc
+        str = surround '\'' <|> surround '"'
+        reg = surround '/' >>= \exp -> ((++) exp) <$> (fromCharList <$> many (satisfy \c -> c=='g'||c=='i'||c=='m'||c=='y'||c=='u'))
+        raw = surround' '`'
 
-literal :: TokenParser TokenStream
-literal = do
-  pos <- getPos
-  str <- hexNum <|> number <|> strlit <|> regexp
-  return $ mkStream pos $ LIT str
+eol :: Parser String Unit
+eol = (try (string "\r\n") <|> string "\r" <|> string "\n") *> return unit
 
-raw :: TokenParser TokenStream
-raw = do
-  pos <- getPos
-  mkStream pos <<< RAW <$> surroundBy '`'
+space :: Parser String Char
+space = satisfy \c -> c == ' ' || c == '\t'
+
+indTok :: Parser String PosToken
+indTok = ind >>= \n-> mkPosTok <$> getPos <*> return (INDENT n)
+  where ind = length <$> (eol *> (some space <|> return Nil))
+
+comTok :: Parser String PosToken
+comTok = mkPosTok <$> getPos <*> (COMMENT <$> com)
+  where com = fromCharList <$> (char '#' *> many (satisfy (\c ->isPrint c$$c/='\r'&&c/='\n'))) 
+
+-- lexer
+lexer :: String -> Either ParseError (List PosToken)
+lexer str = runParser ("\n" ++ str) $ sepBy (wordTok <|> symTok <|> litTok <|> comTok <|> indTok) (many space)
+
+-- symTok :: Parser String PosToken
+-- symTok = mkPosTok <$> getPos <*> tok
+--   where sym = fromCharList <$> some (satisfy isSymChar)
+--         tok = do
+--           str <- sym
+--           return $ if isReserved str then SYMBOL str else OPERATOR str
+
+-- keyword :: Parser String PosToken
+-- keyword = mkPosTok <$> getPos <*> (KEYWORD <$> word)
+--   where word = choice $ map (try <<< string)
+--                [ "let", "in", "where", "if", "then", "else" , "case", "of"
+--                , "with" , "do" , "switch", "return", "while", "break"
+--                , "continue", "infixr" , "infixl", "prefix", "postfix"
+--                , "import", "as", "export" ]
+
+-- operator :: Parser String PosToken
+-- operator = mkPosTok <$> getPos <*> (OPERATOR <$> opstr)
+--   where opstr = fromCharList <$> (some <<< satisfy) \c->
+--           c=='~'||c=='!'||c=='@'||c=='$'||c=='%'||c=='^'||c=='&'||c=='*'||c=='_'
+--           ||c=='+'||c=='-'||c=='='||c=='|'||c==':'||c=='<'||c=='>'||c=='?'
+
+-- symbol :: Parser String PosToken
+-- symbol = mkPosTok <$> getPos <*> (SYMBOL <$> symstr)
+--   where symstr = choice $ map (try <<< string)
+--                ["=", ":", ""]
+
+  -- = ID String
+  -- | KEY String
+  -- | OP String
+  -- | SYM String
+  -- | RAW String
+  -- | LIT String
+  -- | INDENT Int
+
+-- Define Token
+-- data TOKEN
+--   = ID String
+--   | KEY String
+--   | OP String
+--   | SYM String
+--   | RAW String
+--   | LIT String
+--   | BLOCKL | BLOCKR
+--   | STATEL | STATER
+--   | NL
+
+-- derive instance genericTOKEN :: Generic TOKEN
+-- instance showTOKEN :: Show TOKEN where show = gShow
+-- instance eqTOKEN :: Eq TOKEN where eq = gEq
+
+-- newtype PositionToken = PositionToken {position::Position, token::TOKEN}
+-- type TokenStream = List PositionToken
+
+-- instance showPositionToken :: Show PositionToken where
+--   show (PositionToken {position: Position {line: line, column: column}, token: token}) =
+--     "[" ++ show token ++ "(" ++ show line ++ "," ++ show column ++")]"
+
+-- -- Get Position --
+-- getPos :: forall s m. (Monad m) => ParserT s m Position
+-- getPos = ParserT $ \(PState { input: s, position: pos }) ->
+--   return { input: s, consumed: false, result: Right pos, position: pos }
+
+-- makeToken :: Position -> TOKEN -> PositionToken
+-- makeToken pos tok = PositionToken {position: pos, token: tok}
+
+-- mkStream :: Position -> TOKEN -> TokenStream
+-- mkStream p t = singleton $ makeToken p t
+
+-- -- Indent State --
+-- data Indent = BlockIndent Int
+--             | StateIndent Int
+--             | ParenIndent Int
+--             | SquareIndent Int
+--             | BraceIndent Int
+--             | NoneIndent
+
+-- type IndentStack = List Indent
+
+-- -- Some Utils Function --
+-- fromCharList :: List Char -> String
+-- fromCharList = fromCharArray <<< toUnfoldable
+
+-- joinListWith :: String -> List String -> String
+-- joinListWith sep = joinWith sep <<< toUnfoldable
+
+-- eol :: forall m. (Monad m) => ParserT String m Unit
+-- eol = (try (string "\r\n") <|> string "\r" <|> string "\n")
+--       *> return unit
+
+-- indent :: forall m. (Monad m) => ParserT String m Int
+-- indent = length <$> many (satisfy \c -> c == ' ' || c == '\t')
+
+-- -- Indent Handle Parser --
+-- type TokenParser a = ParserT String (State IndentStack) a
+
+-- topIndent :: TokenParser Indent
+-- topIndent = lift $  gets (fromMaybe NoneIndent <<< head)
+
+-- topIndentNum :: TokenParser Int
+-- topIndentNum = do
+--   rest <- topIndent
+--   return $ case rest of
+--     BlockIndent n -> n
+--     StateIndent n -> n
+--     ParenIndent n -> n
+--     SquareIndent n -> n
+--     BraceIndent n -> n
+--     NoneIndent -> 0
+
+-- popIndent :: TokenParser Unit
+-- popIndent = lift $ modify (fromMaybe (Nil::List Indent) <<< tail)
+
+-- pushIndent :: Indent -> TokenParser Unit
+-- pushIndent i = lift $ modify (Cons i)
+
+-- -- Block and Statement Block Start --
+-- blockIndent :: TokenParser TokenStream
+-- blockIndent = do
+--   skipSpaces
+--   pos@(Position {line: _, column: col}) <- getPos
+--   pushIndent (BlockIndent col)
+--   return $ singleton $ makeToken pos BLOCKL
+
+-- stateIndent :: TokenParser TokenStream
+-- stateIndent = do
+--   skipSpaces
+--   pos@(Position {line: _, column: col}) <- getPos
+--   pushIndent (StateIndent col)
+--   return $ singleton $ makeToken pos STATEL
+
+-- -- Handle Newline And Parens
+-- newline :: TokenParser TokenStream
+-- newline = do
+--   ind <- (try $ skipSpaces *> eof *> return 0)
+--        <|> (fromMaybe 0 <<< last <$> some (eol *> indent))
+--   pos <- getPos
+--   fix $ \handle -> do
+--     rest <- topIndent
+--     case rest of
+--       ParenIndent n -> if ind > n then return Nil else fail "Indent Error"
+--       SquareIndent n -> if ind > n then return Nil else fail "Indent Error"
+--       BraceIndent n -> if ind > n then return Nil else fail "Indent Error"
+--       NoneIndent -> if ind /= 0 then return Nil else fail "Indent Error"
+--       StateIndent n -> case compare ind n of
+--         EQ -> return $ mkStream pos NL
+--         GT -> pushIndent (StateIndent ind) *> (return $ mkStream pos STATEL)
+--         LT -> do
+--           popIndent
+--           n' <- topIndentNum
+--           case compare ind n' of
+--             GT -> fail "Indent Error"
+--             _ -> (++) (mkStream pos STATER) <$> handle
+--       BlockIndent n -> case compare ind n of
+--         EQ -> return $ mkStream pos NL
+--         GT -> return Nil
+--         LT -> do
+--           popIndent
+--           n' <- topIndentNum
+--           case compare ind n' of
+--             GT -> fail "Indent Error"
+--             _ -> (++) (mkStream pos BLOCKR) <$> handle
+
+-- parrten :: TokenParser TokenStream
+-- parrten = left <|> right
+--   where left = do
+--           pos <- getPos
+--           tok <- SYM <$> (string "(" <|> string "[" <|> string "{")
+--           n <- topIndentNum
+--           case tok of
+--             SYM "(" -> pushIndent $ ParenIndent n
+--             SYM "[" -> pushIndent $ SquareIndent n
+--             SYM "{" -> pushIndent $ BraceIndent n
+--             _ -> fail "Parse Token Error"
+--           return $ mkStream pos tok
+
+--         right = do
+--           pos <- getPos
+--           tok <- SYM <$> (string ")" <|> string "]" <|> string "}")
+--           fix $ \handle -> do
+--             top <- topIndent
+--             case top of
+--               NoneIndent -> fail "Indent Error"
+--               BlockIndent _ -> popIndent *> ((++) (mkStream pos BLOCKR) <$> handle)
+--               StateIndent _ -> popIndent *> ((++) (mkStream pos STATER) <$> handle)
+--               ParenIndent _ -> if tok == SYM ")" then popIndent *> return (mkStream pos tok) else fail "Paren Error"
+--               SquareIndent _ -> if tok == SYM "]" then popIndent *> return (mkStream pos tok) else fail "Paren Error"
+--               BraceIndent _ -> if tok == SYM "}" then popIndent *> return (mkStream pos tok) else fail "Paren Error"
+
+-- ID / Keywrod / Symobl / Operator Token Parser --
+
+-- isIdStart :: Char -> Boolean
+-- isIdStart c = isAlpha c && c == '_'
+
+-- isIdBody :: Char -> Boolean
+-- isIdBody c = isAlpha c && isDigit c && c == '_'
+
+-- isReservedWord :: String -> Boolean
+-- isReservedWord word = (<=) 0 $ fromMaybe (-1) $ Array.elemIndex word
+--                       [ "let", "in", "where", "if", "then", "else"
+--                       , "case", "of", "with", "do"
+--                       , "switch", "return", "while", "break", "continue"
+--                       , "infixr", "infixl", "prefix", "postfix"
+--                       , "import", "as", "export"
+--                       , "true", "false", "null", "undefined" ]
+
+-- identifier :: TokenParser TokenStream
+-- identifier = do
+--   pos <- getPos
+--   str <- fromCharList <$> (Cons <$> satisfy isIdStart <*> (many $ satisfy isIdBody))
+--   if isReservedWord str
+--     then case str of
+--       "true" -> return $ mkStream pos $ LIT str
+--       "false" -> return $ mkStream pos $ LIT str
+--       "null" -> return $ mkStream pos $ LIT str
+--       "undefined" -> return $ mkStream pos $ LIT str
+--       "where" -> (++) (mkStream pos $ KEY str) <$> blockIndent
+--       "of" -> (++) (mkStream pos $ KEY str) <$> blockIndent
+--       "do" -> (++) (mkStream pos $ KEY str) <$> blockIndent
+--       _ -> return $ mkStream pos $ KEY str
+--     else return $ mkStream pos $ ID str
+
+-- isReservedSymbol :: String -> Boolean
+-- isReservedSymbol word = (<=) 0 $ fromMaybe (-1) $ Array.elemIndex word
+--                       [ "=", "->", "<-", ".", ":", ",", "\\"]
+
+-- isOpChar :: Char -> Boolean
+-- isOpChar c = (<=) 0 $ fromMaybe (-1) $ Array.elemIndex c 
+--              ['~','!','@','$','%','^','&','*','_','+','-','=','|','<','>','?','/','.',':',',','\\']
+
+-- operator :: TokenParser TokenStream
+-- operator = do
+--   pos <- getPos
+--   str <- fromCharList <$> some (satisfy isOpChar)
+--   if isReservedSymbol str
+--     then case str of
+--       "=" -> (skipSpaces *> eol *> ((++) (mkStream pos $ SYM str) <$> stateIndent))
+--              <|> return (mkStream pos (SYM str))
+--       _ -> return $ mkStream pos $ SYM str
+--     else return $ mkStream pos $ OP str
+
+-- General Parser --
+-- hexNum :: TokenParser String
+-- hexNum = try $ string "0x" *>
+--          ((++) "0x" <<< fromCharList <$> many (satisfy isHexDigit))
+
+-- number :: TokenParser String
+-- number = do
+--   int <- some (satisfy isDigit)
+--   dec <- option Nil do
+--     point <- char '.'
+--     Cons point <$> some (satisfy isDigit)
+--   return <<< fromCharList $ int ++ dec
+
+-- surroundBy :: forall m.(Monad m) => Char -> ParserT String m String
+-- surroundBy c = between (char c) (char c)
+--                    ( mksurround cStr <<< joinListWith "" <$> many contents)
+--   where contents = try (string ("\\" ++ cStr))
+--                    <|> (toString <$> satisfy (\c' -> c /= c' && isPrint c'))
+--         cStr = toString c
+--         mksurround c' str = c' ++ str ++ c'
+
+-- strlit :: TokenParser String
+-- strlit = surroundBy '\'' <|> surroundBy '"'
+
+-- regexp :: TokenParser String
+-- regexp = do
+--   exp <- surroundBy '/'
+--   flags <- fromCharList <$> option Nil (many $ oneOf ['g', 'i', 'm'])
+--   return $ exp ++ flags
+
+-- literal :: TokenParser TokenStream
+-- literal = do
+--   pos <- getPos
+--   str <- hexNum <|> number <|> strlit <|> regexp
+--   return $ mkStream pos $ LIT str
+
+-- raw :: TokenParser TokenStream
+-- raw = do
+--   pos <- getPos
+--   mkStream pos <<< RAW <$> surroundBy '`'
 
 -- lexer --
-lexer :: TokenParser TokenStream
-lexer = concat <$> sepBy tokens spaces
-  where spaces = many $ satisfy \c -> c == ' ' || c == '\t'
-        tokens = choice [identifier, operator, parrten, literal, raw, newline]
+-- tokenizer :: TokenParser TokenStream
+-- tokenizer = concat <$> sepBy tokens spaces
+--   where spaces = many $ satisfy \c -> c == ' ' || c == '\t'
+        -- tokens = choice [identifier, operator, parrten, literal, raw, newline]
+--         tokens = choice [identifier]
+
+-- lexer :: String -> Either ParseError TokenStream
+-- lexer code = flip evelState Nil $ runParserT (PState {input: code, position: initialPos}) tokenizer
 
 -- lengecy code --
 
