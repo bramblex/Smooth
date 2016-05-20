@@ -13,10 +13,11 @@ import Data.List (toUnfoldable)
 import Data.Either (Either(..))
 
 import Lexical (lexer, PosToken)
+import Indent (test)
 
 main :: forall e. Eff (console :: CONSOLE, fs :: FS, err :: EXCEPTION | e) Unit
 main = do
   str <- readTextFile UTF8 "./example/test.sm"
   case lexer str of
-    Right a -> print $ (toUnfoldable a::Array PosToken)
+    Right a -> log $ test a
     Left e -> print e

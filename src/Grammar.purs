@@ -11,7 +11,7 @@ data Expression
   | EObj (Array (Tuple String Expression))
   | ELam String (Either Expression (Array Statement))
   | EApp Expression Expression
-  | ELetIn (Array (Tuple String Expression)) Expression
+  | ELetIn (Tuple String Expression) Expression
   | EWhere Expression (Array (Tuple String Expression))
   | EIfElse Expression Expression Expression
   | ECaseOf Expression (Array (Tuple Expression Expression))
@@ -31,6 +31,7 @@ data Statement
   | BreakStat
   | ContinueStat
   | SwitchStat Expression (Array (Tuple Expression (Array Statement)))
+  | Pass
 
 data ModuleStatement
   = MBind (Tuple String Expression)
