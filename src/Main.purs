@@ -12,7 +12,7 @@ import Node.Encoding
 import Data.List (toUnfoldable)
 import Data.Either (Either(..))
 
-import Lexical (lexer, PosToken)
+import Lexer (lexer, PosToken)
 import Indent (test)
 
 main :: forall e. Eff (console :: CONSOLE, fs :: FS, err :: EXCEPTION | e) Unit

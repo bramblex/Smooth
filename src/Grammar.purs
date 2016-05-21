@@ -1,21 +1,22 @@
 
 module Grammar where
 
-import Data.Either (Either)
 import Data.Tuple (Tuple)
+import Data.List (List)
 
 data Expression
   = EID String
   | ELit String
-  | EArr (Array Expression)
-  | EObj (Array (Tuple String Expression))
-  | ELam String (Either Expression (Array Statement))
+  | EStat (List Statement)
+  | EArr (List Expression)
+  | EObj (List (Tuple String Expression))
+  | ELam String Expression
   | EApp Expression Expression
   | ELetIn (Tuple String Expression) Expression
-  | EWhere Expression (Array (Tuple String Expression))
+  | EWhere Expression (List (Tuple String Expression))
   | EIfElse Expression Expression Expression
-  | ECaseOf Expression (Array (Tuple Expression Expression))
-  | EWithDo String (Array DoStatement)
+  | ECaseOf Expression (List (Tuple Expression Expression))
+  | EWithDo String (List DoStatement)
 
 data DoStatement
   = DLetStat (Tuple String Expression)
@@ -26,30 +27,30 @@ data Statement
   = LetStat (Tuple String Expression)
   | CallStat Expression
   | ReturnStat Expression
-  | IfElseStat Expression (Array Statement) (Array Statement)
-  | WhileStat Expression (Array Statement)
+  | IfElseStat Expression (List Statement) (List Statement)
+  | WhileStat Expression (List Statement)
   | BreakStat
   | ContinueStat
-  | SwitchStat Expression (Array (Tuple Expression (Array Statement)))
+  | SwitchStat Expression (List (Tuple Expression (List Statement)))
   | Pass
 
 data ModuleStatement
   = MBind (Tuple String Expression)
-  | MImport String (Array String)
+  | MImport String (List String)
   | MImportAs String String
-  | MExport (Array String)
+  | MExport (List String)
   | MOpDefin OpDefine
 
 data OpDefine
-  = OpInfixR Int String Expression
+  = OpInfixR
   | OpInfixL Int String Expression
   | OpPrefix Int String Expression
   | OpPostFix Int String Expression
 
 newtype Module
-  = Module { exports:: Array String
-           , imports:: Array (Tuple String (Array String))
-           , optable:: Array OpDefine
-           , bindings:: Array (Tuple String Expression) }
+  = Module { exports:: List String
+           , imports:: List (Tuple String (List String))
+           , optable:: List OpDefine
+           , bindings:: List (Tuple String Expression) }
 
-newtype Program = Program (Array (Tuple String Module))
+newtype Program = Program (List (Tuple String Module))

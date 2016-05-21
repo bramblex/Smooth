@@ -1,3 +1,7 @@
-aaa = asdf asdf asdff asdf
+
 aaa =
-    asdf asdf asdf
+    abcd
+      efg
+        hijklmn
+    asdf
+    let aaa = bbb

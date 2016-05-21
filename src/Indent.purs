@@ -16,6 +16,7 @@ import Data.List
 import Data.Maybe
 import Data.Either
 import Data.Tuple
+import Data.String (joinWith)
 import Data.Foldable (Foldable, foldl, foldr, any)
 -- import Data.Generic
 
@@ -23,14 +24,14 @@ import Text.Parsing.Parser (ParserT(..), PState(..), parseFailed, runParserT, Pa
 import Text.Parsing.Parser.Combinators (try, option, between, choice, sepBy, skipMany, lookAhead)
 import Text.Parsing.Parser.Pos (Position(..), initialPos)
 
-import Lexical (TOKEN(..), PosToken(..), unPosToken, getPos, mkPosTok)
+import Lexer (TOKEN(..), PosToken(..), unPosToken, getPos, mkPosTok)
 
 data IndentType = ExprBlock | StatBlock | ParenInner | SquareInner | BraceInner
 instance eqIndentType :: Eq IndentType where
-  eq ExprBlock ExprBlock = true 
-  eq StatBlock StatBlock = true 
-  eq ParenInner ParenInner = true 
-  eq SquareInner SquareInner = true 
+  eq ExprBlock ExprBlock = true
+  eq StatBlock StatBlock = true
+  eq ParenInner ParenInner = true
+  eq SquareInner SquareInner = true
   eq BraceInner BraceInner = true
   eq _ _ = false
 
@@ -89,32 +90,19 @@ input tok = case tok of
   _ -> output tok
 
 handleIndent :: Int -> IndentAnalyzer Unit
-handleIndent n = return unit
-  -- where 
-  -- do
-  -- rest <- fromMaybe (Indent ExprBlock 0) $ top
-  -- case rest of
-  --   (Indent ExprBlock last) -> do
-  --     case compare n last of
-  --       EQ -> output (SYMBOL ";;")
-  --       GT -> return unit
-  --       LT -> do
-  --         output (SYMBOL "}}") *> pop
-  --         rest' <- top
-  --         case rest' of
-  --           Just (Indent t i) -> 
-  --           Nothing -> return unit
-              -- case rest'' of
-              -- (Indent ExprBlock last) -> case 
-              -- (Indent ExprBlock last) ->
-               -- _ -> fail "Unexpected Token"
-  -- case rest of
-    -- (Indent ExprBlock last) -> handle ExprBl
-    -- (Indent StatBlock last) -> handle
-    -- _ -> fail "Unexpected Token"
-    --   where handle = case compare n rest of
-    --           EQ -> output (SYMBOL ";")
-    --           GT -> 
+handleIndent n = do
+  (Indent t i)<- fromMaybe (Indent ExprBlock 0) <$> top
+  case compare n i of
+    EQ -> output (SYMBOL ";;")
+    GT -> if t == StatBlock
+          then output (SYMBOL "{{") *> push (Indent StatBlock n)
+          else return unit
+    LT -> do
+      output (SYMBOL "}}") *> pop
+      (Indent _ i')  <- fromMaybe (Indent ExprBlock 0) <$> top
+      case compare n i' of
+        GT -> fail "Unexpected Indent"
+        _ -> handleIndent n
 
 startExprOrStat :: TOKEN -> IndentAnalyzer Unit
 startExprOrStat tok = do
@@ -141,10 +129,16 @@ rightPart tok = do
     Just ind -> case ind of
       Indent ExprBlock _ -> pop *> output (SYMBOL "}}") *> rightPart tok
       Indent StatBlock _ -> pop *> output (SYMBOL "}}") *> rightPart tok
-      Indent ParenInner _ -> if tok == (SYMBOL ")") then output tok else fail "Unexpected Token"
-      Indent SquareInner _ -> if tok == (SYMBOL "]") then output tok else fail "Unexpected Token"
-      Indent BraceInner _ -> if tok == (SYMBOL "}") then output tok else fail "Unexpected Token"
-    _ -> fail "Unexpected Token"
+      Indent ParenInner _ -> if tok == (SYMBOL ")")
+                             then pop *> output tok
+                             else fail "Unexpected Token"
+      Indent SquareInner _ -> if tok == (SYMBOL "]")
+                              then pop *> output tok
+                              else fail "Unexpected Token"
+      Indent BraceInner _ -> if tok == (SYMBOL "}")
+                             then pop *> output tok
+                             else fail "Unexpected Token"
+    Nothing -> output tok
 
 startExprBlock :: TOKEN -> IndentAnalyzer Unit
 startExprBlock tok = do
@@ -183,8 +177,8 @@ top = lift $ gets head
 push :: Indent  -> IndentAnalyzer Unit
 push ind = lift $ modify $ Cons ind
 
-pop :: IndentAnalyzer Unit
-pop = lift $ modify (fromMaybe (Nil:: List Indent) <<< tail)
+pop :: IndentAnalyzer (Maybe Indent)
+pop = lift $ gets head <* modify (fromMaybe (Nil:: List Indent) <<< tail)
 
 -- Outputs
 output :: TOKEN -> IndentAnalyzer Unit
@@ -192,7 +186,7 @@ output tok = outputs $ singleton tok
 
 outputs :: forall f. (Foldable f) => f TOKEN -> IndentAnalyzer Unit
 outputs toks = getPos >>= \pos-> lift $ tell (map (mkPosTok pos) $ fromFoldable toks)
-              
+
 
 analyse :: IndentAnalyzer Unit
 analyse = fix $ \next ->
@@ -203,15 +197,31 @@ analyse = fix $ \next ->
 -- test toks = show $ (toUnfoldable $ parseIndent toks)::Array PosToken
 -- test :: Tuple (Either ParseError Unit) (List PosToken) -> String
 -- test (Tuple err toks) = show err ++ "\n" ++ show ((toUnfoldable $ parseIndent toks)::Array PosToken)
+
+-- test :: List PosToken -> String
+-- test toks = show s ++ "\n" ++ show ((toUnfoldable w)::Array PosToken)
+--   where rest = parseIndent toks
+--         s = fst rest
+--         w = snd rest
+
 test :: List PosToken -> String
-test toks = show s ++ "\n" ++ show ((toUnfoldable w)::Array PosToken)
-  where rest = parseIndent toks
-        s = fst rest
-        w = snd rest
+test toks = case parseIndent toks of
+  RWSResult a b c -> show a ++ "\n" ++ show b ++ "\n"
+                     ++ render ((toUnfoldable c)::Array PosToken)
 
+render :: Array PosToken -> String
+render toks = joinWith " " $ map render' toks
+  where render' (PosToken {pos: _, tok: tok}) = render'' tok
+        render'' tok = case tok of
+          (ID s) -> s
+          (KEYWORD s) -> s
+          (OPERATOR s) -> s
+          (SYMBOL s) -> s
+          (LITERAL s) -> s
+          _ -> ""
 
-parseIndent :: List PosToken -> Tuple (Either ParseError Unit) (List PosToken)
-parseIndent toks = evalRWS (runParserT (PState { input: toks, position: initialPos }) analyse) unit (Nil::List Indent)
+parseIndent :: List PosToken -> RWSResult (List Indent) (Either ParseError Unit) (List PosToken)
+parseIndent toks = runRWS (runParserT (PState { input: toks, position: initialPos }) analyse) unit (Nil::List Indent)
 
   -- rest <- fstTok
   -- case rest of
