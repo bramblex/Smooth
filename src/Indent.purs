@@ -96,7 +96,7 @@ handleIndent n = do
     EQ -> output (SYMBOL ";;")
     GT -> if t == StatBlock
           then output (SYMBOL "{{") *> push (Indent StatBlock n)
-          else return unit
+               else return unit
     LT -> do
       output (SYMBOL "}}") *> pop
       (Indent _ i')  <- fromMaybe (Indent ExprBlock 0) <$> top

@@ -3,6 +3,7 @@ module Grammar where
 
 import Data.Tuple (Tuple)
 import Data.List (List)
+import Data.Maybe (Maybe)
 
 data Expression
   = EID String
@@ -16,41 +17,41 @@ data Expression
   | EWhere Expression (List (Tuple String Expression))
   | EIfElse Expression Expression Expression
   | ECaseOf Expression (List (Tuple Expression Expression))
-  | EWithDo String (List DoStatement)
+  | EWithDo Expression (List DoStatement)
 
 data DoStatement
-  = DLetStat (Tuple String Expression)
-  | DAssignStat (Tuple String Expression)
-  | DCall Expression
+  = DoStatLet (Tuple String Expression)
+  | DoStatAssign (Tuple String Expression)
+  | DoStatCall Expression
 
 data Statement
-  = LetStat (Tuple String Expression)
-  | CallStat Expression
-  | ReturnStat Expression
-  | IfElseStat Expression (List Statement) (List Statement)
-  | WhileStat Expression (List Statement)
-  | BreakStat
-  | ContinueStat
-  | SwitchStat Expression (List (Tuple Expression (List Statement)))
-  | Pass
+  = StatLet (Tuple String Expression)
+  | StatCall Expression
+  | StatReturn Expression
+  | StatIfElse Expression (List Statement) (List Statement)
+  | StatWhile Expression (List Statement)
+  | StatBreak
+  | StatContinue
+  | StatSwitch Expression (List (Tuple Expression (List Statement)))
+  | StatPass
 
 data ModuleStatement
   = MBind (Tuple String Expression)
   | MImport String (List String)
   | MImportAs String String
   | MExport (List String)
-  | MOpDefin OpDefine
+  | MOpDefine OpType Int String String
 
-data OpDefine
+data OpType
   = OpInfixR
-  | OpInfixL Int String Expression
-  | OpPrefix Int String Expression
-  | OpPostFix Int String Expression
+  | OpInfixL
+  | OpPrefix
+  | OpPostFix
 
 newtype Module
   = Module { exports:: List String
-           , imports:: List (Tuple String (List String))
-           , optable:: List OpDefine
+           , imports:: List (Tuple (Tuple String (Maybe String)) (List String))
+           , optable:: List (Tuple (Tuple OpType Int) (Tuple String String))
            , bindings:: List (Tuple String Expression) }
 
 newtype Program = Program (List (Tuple String Module))
