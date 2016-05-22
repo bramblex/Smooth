@@ -15,6 +15,7 @@ import Grammar
 import Text.Parsing.Parser
 import Text.Parsing.Parser.Combinators
 import Text.Parsing.Parser.Expr
+import Text.Parsing.Parser.Pos
 
 import Data.List
 import Data.Either
@@ -24,35 +25,45 @@ import Data.Maybe
 import Data.Foldable (foldr)
 
 type GrammarParser a = ParserT (List PosToken) (State Module) a
+type SmOperatorTable = OperatorTable (State Module) (List PosToken) Expression
 
 -- Module operation
--- pushms :: ModuleStatement -> GrammarParser ModuleStatement
--- pushms st@(MBind b) = do
---   lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
---     Module {exports:es, imports:is, optable:ops, bindings: Cons b bs}
---   return st
--- pushms st@(MImport m ns) = do
---   lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
---     Module {exports:es, imports:Cons (Tuple (Tuple m Nothing) ns) is, optable:ops, bindings:bs}
---   return st
--- pushms st@(MImportAs m m') = do
---   lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
---     Module {exports:es, imports:Cons (Tuple (Tuple m (Just m')) Nil) is, optable:ops, bindings:bs}
---   return st
--- pushms st@(MExport ns) = do
---   lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
---     Module {exports:es++ns, imports:is, optable:ops, bindings:bs}
---   return st
--- pushms st@(MOpDefine t p op n) = do
---   lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
---     Module {exports:es, imports:is, optable:Cons (Tuple (Tuple t p) (Tuple op n)) ops, bindings:bs}
---   return st
+pushms :: ModuleStatement -> GrammarParser ModuleStatement
+pushms st@(MBind b) = do
+  lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
+    Module {exports:es, imports:is, optable:ops, bindings: Cons b bs}
+  return st
+pushms st@(MImport m ns) = do
+  lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
+    Module {exports:es, imports:Cons (Tuple (Tuple m Nothing) ns) is, optable:ops, bindings:bs}
+  return st
+pushms st@(MImportAs m m') = do
+  lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
+    Module {exports:es, imports:Cons (Tuple (Tuple m (Just m')) Nil) is, optable:ops, bindings:bs}
+  return st
+pushms st@(MExport ns) = do
+  lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
+    Module {exports:es++ns, imports:is, optable:ops, bindings:bs}
+  return st
+pushms st@(MOpDefine t p op n) = do
+  lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
+    Module {exports:es, imports:is, optable:Cons (Tuple (Tuple t p) (Tuple op n)) ops, bindings:bs}
+  return st
 
--- getOpTable :: GrammarParser OperatorTable
--- getOpTable = do
---   ops <- lift $ gets $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) -> ops
---   return []
--- Token
+getOpTable :: GrammarParser SmOperatorTable
+getOpTable = do
+  ops <- lift $ gets $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) -> ops
+  let sorted = flip sortBy ops $ \(Tuple (Tuple _ p) (_)) (Tuple (Tuple _ p') _) -> compare p p'
+  let grouped = flip groupBy sorted $ \(Tuple (Tuple _ p) (_)) (Tuple (Tuple _ p') _) -> p == p'
+  let maped = flip map grouped $ map
+              $ \(Tuple (Tuple t _) (Tuple op n)) -> case t of
+                OpInfixR -> Infix (binary op n) AssocRight
+                OpInfixL -> Infix (binary op n) AssocLeft
+                OpPrefix -> Prefix (unify op n)
+                OpPostFix -> Postfix (unify op n)
+  return <<< toUnfoldable <<< map toUnfoldable $ maped
+    where binary op n = match (OPERATOR op) *> return (\l r -> EApp (EApp (EID n) l) r)
+          unify op n = match (OPERATOR op) *> return (EApp (EID n))
 
 token :: GrammarParser TOKEN
 token = ParserT $ \(PState {input:toks, position:pos}) ->
@@ -174,8 +185,10 @@ binding = fix \binding' -> do
 -- expr = match (ID "expr") *> return (EID "expr")
 
 expr :: GrammarParser Expression
-expr = fix \expr' -> buildExprParser optable (atom expr')
-  where optable = [ [Infix (return EApp) AssocRight] ]
+expr = do
+  optable <- getOpTable
+  fix \expr' -> buildExprParser (app ++ optable) (atom expr')
+  where app = [ [Infix (return EApp) AssocRight] ]
         atom expr' = choice $ map (flip ($) expr')
                [eid , elit, estat, earr, eobj, elam, eletin
                , eifelse, ecaseof, ewithdo, paren]
@@ -360,7 +373,7 @@ mbind = do
   -- as <- many $ getCont <$> when isID
   -- match $ SYMBOL "="
   -- e <- expr
-  return $ MBind b
+  pushms $ MBind b
 
 mimp :: GrammarParser ModuleStatement
 mimp = do
@@ -368,7 +381,7 @@ mimp = do
   ids <- sepBy1 (getCont <$> when isID) (match $ SYMBOL ".")
   names <- option Nil
            $ paren (sepBy (getCont <$> when isID) (match $ SYMBOL ","))
-  return $ MImport (joinListWith "/" ids) names
+  pushms $ MImport (joinListWith "/" ids) names
 
 mimpas :: GrammarParser ModuleStatement
 mimpas = do
@@ -376,14 +389,14 @@ mimpas = do
   ids <- sepBy1 (getCont <$> when isID) (match $ SYMBOL ".")
   match $ KEYWORD "as"
   as <- getCont <$> when isID
-  return $ MImportAs (joinListWith "/" ids) as
+  pushms $ MImportAs (joinListWith "/" ids) as
 
 mexp :: GrammarParser ModuleStatement
 mexp = do
   match $ KEYWORD "export"
   names <- (match (OPERATOR "*") *> return Nil)
            <|> paren (sepBy1 (getCont <$> when isID) (match $ SYMBOL ","))
-  return $ MExport names
+  pushms $ MExport names
 
 -- data OpDefine
 --   = OpInfixR Int String String
@@ -403,8 +416,21 @@ mopdef = do
         "infixr" -> OpInfixR
         "prefix" -> OpPrefix
         "postfix" -> OpPostFix
-  return $ MOpDefine t p op n
+  pushms $ MOpDefine t p op n
 
+-- Interface --
+
+parser :: List PosToken -> Either ParseError Module
+parser toks = case toks of
+  Nil -> Right emptyModule
+  (Cons _ Nil) -> Right emptyModule
+  _ -> handle <<< flip runState emptyModule $ runParserT (PState {input: toks, position: initialPos}) module'
+    where module' = sepEndBy mstat (match $ SYMBOL ";;")
+          emptyModule = Module {exports:Nil, imports:Nil, optable:Nil, bindings:Nil}
+          handle (Tuple (Right _) s) = Right s
+          handle (Tuple (Left e) s) = Left e
+
+-- parser _ = Right emptyModule
   -- match $ SYMBOL "="
 -- Interface --
 
