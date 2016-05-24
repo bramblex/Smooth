@@ -31,10 +31,10 @@ parseModule str =  case lexer ("\n"++str++"\n") of
     Left err' -> Left err'
   Left err -> Left err
 
--- export :: String -> String
--- export code = case parseModule code of
---   Right output -> output
---   Left err -> show err
+export :: String -> String
+export code = case parseModule code of
+  Right output -> output
+  Left err -> show err
 
 main :: forall e. Eff (console :: CONSOLE, fs :: FS, err :: EXCEPTION, process :: PROCESS| e) Unit
 main = do
