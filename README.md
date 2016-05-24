@@ -2,6 +2,8 @@
 
 ## 简介
 
+可以在此处试用 [Git Page 传送门](http://bramblex.github.io/Smooth/)。
+
 Smooth 是一门 Haskell Like 语法并且编译到 JavaScript 的函数式语言。但和 Haskell 不同的是，Smooth 没有强类型系统，也不要求纯函数。Smooth 可以非常轻易地混合使用命令式语言和函数式语言的特性，所以 Smooth 将会是一门非常实用且非常方便的语言。
 
 Smooth 借鉴了 Haskel 中的 do 语法，但是剔除了其中深奥复杂的抽象，使得开发更为轻松简单，尤其是处理 JavaScript 异步的过程。
