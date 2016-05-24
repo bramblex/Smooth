@@ -1,2 +1,32 @@
 
-infixr 5 => abcd
+export (main) 
+
+infixl 4 + add
+add = `(a)=>(b)=>a+b`
+
+infixr 0 $ app
+app = `(f)=>(g)=>f(g)`
+
+infixl 3 == eq
+eq = `(a)=>(b)=>a===b`
+
+infixl 3 != neq
+neq = `(a)=>(b)=>a!==b`
+
+print = `(a)=>console.log(a)`
+
+delay = `(ms)=>(f)=>setTimeout(f,ms)`
+
+mkasync = `(job)=>(f)=>{job();f()}`
+async f g = f g
+
+test = with async do
+     delay 1000
+     mkasync \_-> print "hello" 
+     delay 1000
+     mkasync \_-> print "world" 
+     delay 1000
+     mkasync \_-> print "smooth" 
+
+main _ =
+     test $ \_ -> print "done"

@@ -50,8 +50,17 @@ unPosToken (PosToken {pos:_, tok:tok}) = tok
 
 instance showPosToken :: Show PosToken where
   show (PosToken {pos:Position {line:line, column:column}, tok: tok}) =
-    "["++show tok++" (" ++show line++ ","++show column++")"++"]"
-
+    showTok tok
+    -- "["++show tok++" (" ++show line++ ","++show column++")"++"]"
+    where
+      showTok (ID s) = s
+      showTok (KEYWORD s) = s
+      showTok (OPERATOR s) = s
+      showTok (SYMBOL s) = s
+      showTok (LITERAL s) = s
+      showTok (INDENT i) = show i
+      showTok (COMMENT s) = s
+  
 getPos :: forall s m. (Monad m) => ParserT s m Position
 getPos = ParserT $ \(PState { input: s, position: pos }) ->
   return { input: s, consumed: false, result: Right pos, position: pos }
@@ -76,7 +85,7 @@ isReserved :: String -> Boolean
 isReserved word = (<=) 0 <<< fromMaybe (-1) <<< Array.elemIndex word $
                   [ "let", "in", "where", "if", "then", "else"
                   , "case", "of", "with", "do"
-                  , "switch", "return", "while", "break", "continue"
+                  , "switch", "return", "while", "break", "continue" , "pass"
                   , "infixr", "infixl", "prefix", "postfix"
                   , "import", "as", "export"
                   , "true", "false", "null", "undefined"]

@@ -75,7 +75,7 @@ indent = fromMaybe (INDENT 0) <<< last <$> some (skipMany (when isCom) *> when i
 -- Inputs
 input :: TOKEN -> IndentAnalyzer Unit
 input tok = case tok of
-  KEYWORD "where" -> startExprBlock tok
+  KEYWORD "where" -> whereBlock tok
   KEYWORD "of" -> startExprBlock tok
   KEYWORD "do" -> startExprBlock tok
   SYMBOL "(" -> leftPart tok
@@ -107,7 +107,7 @@ handleIndent n = do
 startExprOrStat :: TOKEN -> IndentAnalyzer Unit
 startExprOrStat tok = do
   output tok
-  ahead <- token
+  ahead <- indent <|> token
   case ahead of
     INDENT n -> push (Indent StatBlock n) *> output (SYMBOL "{{")
     _ -> output ahead
@@ -144,12 +144,23 @@ startExprBlock :: TOKEN -> IndentAnalyzer Unit
 startExprBlock tok = do
   output tok
   (Position {line:_, column:col}) <- getPos
-  ahead <- token
+  ahead <- indent <|> token
+  case ahead of
+    INDENT n -> push (Indent ExprBlock n) *> output (SYMBOL "{{")
+    _ -> do
+      (Position {line:_, column:col}) <- getPos
+      push (Indent ExprBlock (col -1)) *> outputs [SYMBOL "{{", ahead]
+
+whereBlock :: TOKEN -> IndentAnalyzer Unit
+whereBlock tok = do
+  output tok
+  (Position {line:_, column:col}) <- getPos
+  ahead <- indent <|> token
   case ahead of
     INDENT n -> do
       if n > col - 1
         then push (Indent ExprBlock n) *> output (SYMBOL "{{")
-        else fail "Unexpected Indent"
+        else fail ("Unexpected Indent" ++ show col)
     _ -> do
       (Position {line:_, column:col}) <- getPos
       push (Indent ExprBlock (col -1)) *> outputs [SYMBOL "{{", ahead]
@@ -204,10 +215,10 @@ analyse = fix $ \next ->
 --         s = fst rest
 --         w = snd rest
 
-test :: List PosToken -> String
-test toks = case parseIndent toks of
-  RWSResult a b c -> show a ++ "\n" ++ show b ++ "\n"
-                     ++ render ((toUnfoldable c)::Array PosToken)
+-- test :: List PosToken -> String
+-- test toks = case parseIndent toks of
+--   RWSResult a b c -> show a ++ "\n" ++ show b ++ "\n"
+--                      ++ render ((toUnfoldable c)::Array PosToken)
 
 render :: Array PosToken -> String
 render toks = joinWith " " $ map render' toks
@@ -220,8 +231,10 @@ render toks = joinWith " " $ map render' toks
           (LITERAL s) -> s
           _ -> ""
 
-parseIndent :: List PosToken -> RWSResult (List Indent) (Either ParseError Unit) (List PosToken)
-parseIndent toks = runRWS (runParserT (PState { input: toks, position: initialPos }) analyse) unit (Nil::List Indent)
+parseIndent :: List PosToken -> Either ParseError (List PosToken)
+parseIndent toks = handle $ runRWS (runParserT (PState { input: toks, position: initialPos }) analyse) unit (Nil::List Indent)
+  where handle (RWSResult _ (Left err) _) = Left err
+        handle (RWSResult _ (Right _) rest) = Right rest
 
   -- rest <- fstTok
   -- case rest of

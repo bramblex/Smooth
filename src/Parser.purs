@@ -31,7 +31,7 @@ type SmOperatorTable = OperatorTable (State Module) (List PosToken) Expression
 pushms :: ModuleStatement -> GrammarParser ModuleStatement
 pushms st@(MBind b) = do
   lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
-    Module {exports:es, imports:is, optable:ops, bindings: Cons b bs}
+    Module {exports:es, imports:is, optable:ops, bindings: bs ++ Cons b Nil}
   return st
 pushms st@(MImport m ns) = do
   lift $ modify $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) ->
@@ -53,7 +53,7 @@ pushms st@(MOpDefine t p op n) = do
 getOpTable :: GrammarParser SmOperatorTable
 getOpTable = do
   ops <- lift $ gets $ \(Module {exports:es, imports:is, optable:ops, bindings:bs}) -> ops
-  let sorted = flip sortBy ops $ \(Tuple (Tuple _ p) (_)) (Tuple (Tuple _ p') _) -> compare p p'
+  let sorted = flip sortBy ops $ \(Tuple (Tuple _ p) (_)) (Tuple (Tuple _ p') _) -> compare p' p
   let grouped = flip groupBy sorted $ \(Tuple (Tuple _ p) (_)) (Tuple (Tuple _ p') _) -> p == p'
   let maped = flip map grouped $ map
               $ \(Tuple (Tuple t _) (Tuple op n)) -> case t of
@@ -134,7 +134,8 @@ binding = fix \binding' -> do
   n <- getCont <$> when isID
   as <- many $ getCont <$> when isID
   match $ SYMBOL "="
-  e <- mkLam as <$> expr
+  -- e <- mkLam as <$> expr
+  e <- mkLam as <$> (estat expr <|> expr)
   e' <- option e $ do
     match $ KEYWORD "where"
     body <- block binding'
@@ -188,9 +189,9 @@ expr :: GrammarParser Expression
 expr = do
   optable <- getOpTable
   fix \expr' -> buildExprParser (app ++ optable) (atom expr')
-  where app = [ [Infix (return EApp) AssocRight] ]
+  where app = [ [Infix (return EApp) AssocLeft] ]
         atom expr' = choice $ map (flip ($) expr')
-               [eid , elit, estat, earr, eobj, elam, eletin
+               [eid , elit, earr, eobj, elam, eletin
                , eifelse, ecaseof, ewithdo, paren]
 
 eid :: GrammarParser Expression -> GrammarParser Expression
@@ -258,10 +259,12 @@ ecaseof expr' = do
 ewithdo :: GrammarParser Expression -> GrammarParser Expression
 ewithdo expr' = do
   match $ KEYWORD "with"
-  b <- expr'
+  b <- getCont <$> when isID
   match $ KEYWORD "do"
   body <- block $ dostat expr'
   return $ EWithDo b body
+  -- return $ EWithDo b Nil
+  -- match $ ID "EXPR"
 
 -- data DoStatement
 --   = DLetStat (Tuple String Expression)
@@ -269,7 +272,7 @@ ewithdo expr' = do
 --   | DCall Expression
 
 dostat :: GrammarParser Expression -> GrammarParser DoStatement
-dostat expr' = choice $ (map (flip ($) expr')) [dslet, dsass, dscall]
+dostat expr' = choice $ (map (try <<< flip ($) expr')) [dslet, dsass, dscall]
 
 dslet :: GrammarParser Expression -> GrammarParser DoStatement
 dslet expr' = do
@@ -304,7 +307,9 @@ dscall expr' = DoStatCall <$> expr'
 
 stat :: GrammarParser Statement
 stat = fix \stat' -> choice <<< map (flip ($) stat')
-                     $ [stlet, stcall, streturn, stifelse , stwhile, stswitch, stpass]
+                     $ [stlet, streturn, stifelse, stwhile, stswitch, stpass, stass, stcall]
+                     -- $ [stlet, stcall, streturn, stifelse, stwhile, stswitch, stpass]
+                     -- $ [stifelse, stpass]
 
 stlet :: GrammarParser Statement -> GrammarParser Statement
 stlet stat' = do
@@ -315,6 +320,9 @@ stlet stat' = do
   -- match $ SYMBOL "="
   -- e <- expr
   return $ StatLet b
+
+stass :: GrammarParser Statement -> GrammarParser Statement
+stass stat' = try $ StatAss <$> binding
 
 stcall :: GrammarParser Statement -> GrammarParser Statement
 stcall stat' = StatCall <$> expr
@@ -330,6 +338,7 @@ stifelse stat' = do
   con <- expr
   ib <- block stat'
   eb <- option Nil $ do
+    match $ SYMBOL ";;"
     match $ KEYWORD "else"
     block stat'
   return $ StatIfElse con ib eb
@@ -364,7 +373,7 @@ stpass stat' = match (KEYWORD "pass") *> return StatPass
 --   | MOpDefin OpDefine
 
 mstat :: GrammarParser ModuleStatement
-mstat = choice $ map try [mbind, mimp, mimpas, mexp, mopdef]
+mstat = choice (map try [mbind, mimp, mimpas, mexp, mopdef]) <|> return MPass
 
 mbind :: GrammarParser ModuleStatement
 mbind = do
@@ -420,11 +429,9 @@ mopdef = do
 
 -- Interface --
 
-parser :: List PosToken -> Either ParseError Module
-parser toks = case toks of
-  Nil -> Right emptyModule
-  (Cons _ Nil) -> Right emptyModule
-  _ -> handle <<< flip runState emptyModule $ runParserT (PState {input: toks, position: initialPos}) module'
+parse :: List PosToken -> Either ParseError Module
+parse toks =
+  handle <<< flip runState emptyModule $ runParserT (PState {input: toks, position: initialPos}) module'
     where module' = sepEndBy mstat (match $ SYMBOL ";;")
           emptyModule = Module {exports:Nil, imports:Nil, optable:Nil, bindings:Nil}
           handle (Tuple (Right _) s) = Right s
