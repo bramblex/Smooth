@@ -17,13 +17,15 @@ delay = `(ms)=>(f)=>setTimeout(f,ms)`
 mkasync = `(job)=>(f)=>{job();f()}`
 async f g = f g
 
+asyncPrint str = mkasync \_ -> print str
+
 asyncJob = with async do
      delay 1000
-     mkasync \_-> print "hello" 
+     asyncPrint "hello"
      delay 1000
-     mkasync \_-> print "world" 
+     asyncPrint "world" 
      delay 1000
-     mkasync \_-> print "smooth" 
+     asyncPrint "smooth" 
 
 main _ =
      asyncJob $ \_ -> print "done"
