@@ -1,0 +1,40 @@
+
+module SMType(SMType(..), (.->), (.::), mkSMTypeFunc) where
+
+import Prelude (class Show, class Eq, show, (++), flip, map)
+import Data.String (joinWith)
+import Data.Tuple (Tuple(..))
+import Data.Generic (class Generic, gEq)
+
+data SMType
+  = SMBoolean
+  | SMNumber
+  | SMString
+  | SMRegexp
+  | SMArray SMType
+  | SMUnified
+  | SMFunction SMType SMType
+  | SMObject String (Array (Tuple String SMType))
+
+infixr 5 mkSMTypeFunc as .->
+mkSMTypeFunc :: SMType -> SMType -> SMType
+mkSMTypeFunc t0 t1 = SMFunction t0 t1
+
+infixl 5 Tuple as .::
+
+derive instance genericSMType :: Generic SMType
+
+instance eqSMType :: Eq SMType where eq = gEq
+
+instance showSMType :: Show SMType where
+  show type' = case type' of
+    SMBoolean -> "Boolean"
+    SMNumber -> "Number"
+    SMString -> "String"
+    SMRegexp -> "Regexp"
+    SMArray t -> "Array(" ++ show t ++ ")"
+    SMUnified -> "*"
+    SMFunction t0 t1 -> case t0 of
+      SMFunction _ _ -> "(" ++ show t0 ++ ") -> " ++ show t1
+      _ -> show t0 ++ " -> " ++ show t1
+    SMObject name nts -> name ++ "(" ++ joinWith ", " (flip map nts \(Tuple n t) -> n ++ "::" ++ show t) ++ ")"

@@ -1,0 +1,21 @@
+
+-- module SMProgram where
+
+-- import Prelude
+-- import Data.Tuple
+
+-- newtype SMProgram
+--   = SMProgram { entry :: String
+--               , modules :: Array (Tuple String SMModule) }
+
+-- newtype SMModule
+--   = SMModule { imports :: Array
+--              , exports :: Array
+--              , classes :: Array SMClass
+--              , optable :: Array
+--              , bindings :: Array }
+
+-- newtype SMProgram =
+--   SMProgram { entry_point :: { module_name :: String
+--                              , function_name :: String }
+--             , modules :: Array }
