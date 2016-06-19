@@ -52,6 +52,19 @@ instance showIndent :: Show Indent where show = gShow
 
 newtype SMPosTok = SMPosTok {pos::Position, tok::SMToken}
 
+instance showSMPosTok :: Show SMPosTok where
+  show (SMPosTok {pos:Position pos, tok:tok}) = showTok tok ++ "("++ show pos.line ++ "," ++ show pos.column ++")"
+    where showTok tok = case tok of
+            ID str-> "[ID " ++ str ++ "]"
+            KEY str-> "[KEY " ++ str ++ "]"
+            SYM str-> "[SYM " ++ str ++ "]"
+            OP str-> "[OP " ++ str ++ "]"
+            LIT str-> "[LIT " ++ str ++ "]"
+            BLOCK_START-> "[BLOCK_START]"
+            BLOCK_END-> "[BLOCK_END]"
+            BLOCK_SEP-> "[BLOCK_SEP]"
+            IND int -> "[IND " ++ show int++ "]"
+
 type IndTokParser = ParserT String (RWS Unit (Array SMPosTok) (Array Indent))
 
 canBeReduced :: String -> String -> Boolean
