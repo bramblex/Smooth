@@ -3,9 +3,17 @@
 
 -- import Prelude
 -- import Data.Maybe (Maybe)
+-- import Data.Tuple (Tuple)
 -- import Data.Generic (class Generic, gShow)
 
 -- import SMAST
+
+-- newtype SMOpDef = SMOpDef {_type::String, op::String, alias::String}
+-- newtype SMModule = SMModule { optable:: Array (Array SMOpDef)
+--                             , exports:: Array String
+--                             , bindings:: Array (Tuple String SMExpression) }
+
+-- newtype SMModule = SMModule {header:: SMModuleHeader, body:: Array (Tuple String SMExpression)}
 
 -- data SMModuleStatement
 --   = SMImport Import

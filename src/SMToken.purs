@@ -19,7 +19,7 @@ import Data.Array (some, many, elemIndex, length, last, head, tail, singleton)
 import Data.Char (toString)
 import Data.Char.Unicode (isAlpha, isDigit, isHexDigit, isPrint)
 
-import Data.Generic (class Generic, gShow)
+import Data.Generic (class Generic, gShow, gEq)
 
 import Text.Parsing.Parser (ParserT(..), PState(..), fail, runParser, runParserT, ParseError(..), Parser(..), parseFailed)
 import Text.Parsing.Parser.Combinators (try, option, between, choice, sepBy, skipMany, lookAhead)
@@ -39,6 +39,7 @@ data SMToken
 
 derive instance genericSMToken :: Generic SMToken
 instance showSMToken :: Show SMToken where show = gShow
+instance eqSMToken :: Eq SMToken where eq = gEq
 
 data Indent
   = Bottom
@@ -84,7 +85,7 @@ reserved_words = [ "let", "in", "where", "if", "then", "else"
                 , "switch", "return", "while", "break", "continue" , "pass"
                 , "infixr", "infixl", "prefix", "postfix"
                 , "import", "as", "export"
-                , "true", "false", "null", "undefined" ]
+                , "true", "false", "null", "undefined", "default" ]
 
 inArray :: forall a.(Eq a) => a -> Array a -> Boolean
 inArray a as = case a `elemIndex` as of
@@ -102,7 +103,7 @@ wordTok = withPos $ do
   word_str <- word
   case word_str `inArray` reserved_words of
     false -> return $ ID word_str
-    true -> case word_str `inArray` ["true", "false", "null", "undefined"] of
+    true -> case word_str `inArray` ["true", "false", "null", "undefined", "default"] of
       true -> return $ LIT word_str
       false -> return $ KEY word_str
 
@@ -326,8 +327,9 @@ handleIndent ind = handleIndent' ind true
 
 -- tokenizer --
 tokenizer :: String -> Either ParseError (Array SMPosTok)
-tokenizer code = handle $ runRWS (runParserT (PState {input: code, position: initialPos }) analyse) unit ([]::Array Indent)
-  where analyse = (nextTok >>= \tok -> input tok *> analyse)
+tokenizer code = handle $ runRWS (runParserT (PState {input: code', position: initialPos }) analyse) unit ([]::Array Indent)
+  where code' = "\n" ++ code ++ "\n"
+        analyse = (nextTok >>= \tok -> input tok *> analyse)
                   <|> eof <|> fail "Tokenizer Error"
         handle (RWSResult _ (Left err) _) = Left err
         handle (RWSResult _ (Right _) ret) = Right ret
