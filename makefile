@@ -1,6 +1,6 @@
 
 
-all: bin/smooth.js bin/smooth
+all: src/smooth.js bin/smooth
 
 src/Smooth.jison: src/*
 
