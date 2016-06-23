@@ -290,13 +290,13 @@ atom
   ;
 
 literal
-  : NUMBER                      { AST.Expr.Val('NUMBER', $1)}
-  | STRING                      { AST.Expr.Val('STRING', $1)}
-  | BOOLEAN                     { AST.Expr.Val('BOOLEAN', $1)}
-  | NULL                        { AST.Expr.Val('NULL', $1)}
-  | UNDEFINED                   { AST.Expr.Val('UNDEFINED', $1)}
-  | RAWCODE                     { AST.Expr.Val('RAWCODE', $1)}
-  | REGEXP                      { AST.Expr.Val('REGEXP', $1)}
+  : NUMBER                      { $$ = AST.Expr.Val('NUMBER', $1)}
+  | STRING                      { $$ = AST.Expr.Val('STRING', $1)}
+  | BOOLEAN                     { $$ = AST.Expr.Val('BOOLEAN', $1)}
+  | NULL                        { $$ = AST.Expr.Val('NULL', $1)}
+  | UNDEFINED                   { $$ = AST.Expr.Val('UNDEFINED', $1)}
+  | RAWCODE                     { $$ = AST.Expr.Val('RAWCODE', $1)}
+  | REGEXP                      { $$ = AST.Expr.Val('REGEXP', $1)}
   ;
 
 array_items

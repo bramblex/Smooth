@@ -22,13 +22,13 @@ module.exports = function (node){
     }
     else if (node instanceof AST.Module) {
         return [
-            node.imports.map(function(node){return compile(node);}).join(';'),
-            node.bindings.map(function(node){return compile(node);}).join(';'),
-            node.exports.map(function(node){return compile(node);}).join(';')
+            node.imports.map(function(n){return compile(n);}).join(';'),
+            node.bindings.map(function(n){return compile(n);}).join(';'),
+            node.exports.map(function(n){return compile(n);}).join(';')
         ].join(';');
     }
     else if (node instanceof AST.Module.ImportAs) {
-        return ['var', smID(node.name), 'require(' + node.path + ')'].join(' ');
+        return ['var', smID(node.name), '=', 'require(' + node.path + ')'].join(' ');
     }
     else if (node instanceof AST.Module.Import) {
         return node.names.map(function(name){
@@ -86,9 +86,9 @@ module.exports = function (node){
     else if (node instanceof AST.Expr.Object) {
         return '{' + node.content.map(compile).join(',') + '}';
     }
-    else if (node instanceof AST.Expr.KeyValue) {
+    else if (node instanceof AST.Expr.Object.KeyValue) {
         return node.name + ':' + compile(node.val);
     }
 
-    throw "Unexpected Node";
+    throw Error("Unexpected Node");
 };

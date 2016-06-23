@@ -268,25 +268,25 @@
 	 this.$ = AST.Expr.Object($$[$0-1]) 
 	break;
 	case 57:
-	 AST.Expr.Val('NUMBER', $$[$0])
+	 this.$ = AST.Expr.Val('NUMBER', $$[$0])
 	break;
 	case 58:
-	 AST.Expr.Val('STRING', $$[$0])
+	 this.$ = AST.Expr.Val('STRING', $$[$0])
 	break;
 	case 59:
-	 AST.Expr.Val('BOOLEAN', $$[$0])
+	 this.$ = AST.Expr.Val('BOOLEAN', $$[$0])
 	break;
 	case 60:
-	 AST.Expr.Val('NULL', $$[$0])
+	 this.$ = AST.Expr.Val('NULL', $$[$0])
 	break;
 	case 61:
-	 AST.Expr.Val('UNDEFINED', $$[$0])
+	 this.$ = AST.Expr.Val('UNDEFINED', $$[$0])
 	break;
 	case 62:
-	 AST.Expr.Val('RAWCODE', $$[$0])
+	 this.$ = AST.Expr.Val('RAWCODE', $$[$0])
 	break;
 	case 63:
-	 AST.Expr.Val('REGEXP', $$[$0])
+	 this.$ = AST.Expr.Val('REGEXP', $$[$0])
 	break;
 	case 67:
 	 this.$ = $$[$0-4].concat([Expr.Object.KeyValue($$[$0-2], $$[$0])]) 
@@ -1031,10 +1031,10 @@
 	};
 
 
-	Module.Export = function(name){
+	Module.Export = function(names){
 	    if( !(this instanceof arguments.callee) )
 	        return new arguments.callee(names);
-	    this.name = name;
+	    this.names = names;
 	};
 	Module.Binding = function(binding){
 	    if( !(this instanceof arguments.callee) )
@@ -1138,7 +1138,6 @@
 	};
 
 	AST.Expr = Expr;
-
 	module.exports = AST;
 
 
@@ -1170,13 +1169,13 @@
 	    }
 	    else if (node instanceof AST.Module) {
 	        return [
-	            node.imports.map(function(node){return compile(node);}).join(';'),
-	            node.bindings.map(function(node){return compile(node);}).join(';'),
-	            node.exports.map(function(node){return compile(node);}).join(';')
+	            node.imports.map(function(n){return compile(n);}).join(';'),
+	            node.bindings.map(function(n){return compile(n);}).join(';'),
+	            node.exports.map(function(n){return compile(n);}).join(';')
 	        ].join(';');
 	    }
 	    else if (node instanceof AST.Module.ImportAs) {
-	        return ['var', smID(node.name), 'require(' + node.path + ')'].join(' ');
+	        return ['var', smID(node.name), '=', 'require(' + node.path + ')'].join(' ');
 	    }
 	    else if (node instanceof AST.Module.Import) {
 	        return node.names.map(function(name){
@@ -1234,11 +1233,11 @@
 	    else if (node instanceof AST.Expr.Object) {
 	        return '{' + node.content.map(compile).join(',') + '}';
 	    }
-	    else if (node instanceof AST.Expr.KeyValue) {
+	    else if (node instanceof AST.Expr.Object.KeyValue) {
 	        return node.name + ':' + compile(node.val);
 	    }
 
-	    throw "Unexpected Node";
+	    throw Error("Unexpected Node");
 	};
 
 

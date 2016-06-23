@@ -33,10 +33,10 @@ Module.Import = function(path, names){
 };
 
 
-Module.Export = function(name){
+Module.Export = function(names){
     if( !(this instanceof arguments.callee) )
         return new arguments.callee(names);
-    this.name = name;
+    this.names = names;
 };
 Module.Binding = function(binding){
     if( !(this instanceof arguments.callee) )
@@ -140,5 +140,4 @@ Expr.Object.KeyValue = function(key, val){
 };
 
 AST.Expr = Expr;
-
 module.exports = AST;

@@ -2,7 +2,7 @@ var fs = require("fs");
 
 function contains(arr, val) {
     return arr && arr.indexOf(val) !== -1;
-}
+};
 
 function readDir(dirName) {
     try {
@@ -10,7 +10,7 @@ function readDir(dirName) {
     } catch (e){
         return [];
     }
-}
+};
 
 function readFromPackageJson() {
     var packageJson;
@@ -27,7 +27,7 @@ function readFromPackageJson() {
         });
     });
     return Object.keys(deps);
-}
+};
 
 function containsPattern(arr, val) {
     return arr && arr.some(function(pattern){
@@ -37,7 +37,7 @@ function containsPattern(arr, val) {
             return pattern == val;
         }
     });
-}
+};
 
 var nodeExternals = function nodeExternals(options) {
     options = options || {};

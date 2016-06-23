@@ -222,25 +222,25 @@ case 55:
  this.$ = AST.Expr.Object($$[$0-1]) 
 break;
 case 57:
- AST.Expr.Val('NUMBER', $$[$0])
+ this.$ = AST.Expr.Val('NUMBER', $$[$0])
 break;
 case 58:
- AST.Expr.Val('STRING', $$[$0])
+ this.$ = AST.Expr.Val('STRING', $$[$0])
 break;
 case 59:
- AST.Expr.Val('BOOLEAN', $$[$0])
+ this.$ = AST.Expr.Val('BOOLEAN', $$[$0])
 break;
 case 60:
- AST.Expr.Val('NULL', $$[$0])
+ this.$ = AST.Expr.Val('NULL', $$[$0])
 break;
 case 61:
- AST.Expr.Val('UNDEFINED', $$[$0])
+ this.$ = AST.Expr.Val('UNDEFINED', $$[$0])
 break;
 case 62:
- AST.Expr.Val('RAWCODE', $$[$0])
+ this.$ = AST.Expr.Val('RAWCODE', $$[$0])
 break;
 case 63:
- AST.Expr.Val('REGEXP', $$[$0])
+ this.$ = AST.Expr.Val('REGEXP', $$[$0])
 break;
 case 67:
  this.$ = $$[$0-4].concat([Expr.Object.KeyValue($$[$0-2], $$[$0])]) 
