@@ -1,7 +1,7 @@
 
+
 var fs = require('fs');
 var path = require('path');
-
 var Smooth = require('./Smooth');
 var source_path = process.argv[2];
 
