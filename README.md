@@ -11,24 +11,39 @@ Smooth 借鉴了 Haskel 中的 do 语法，但是剔除了其中深奥复杂的�
 以下是一个简单的例子，将每隔一秒种依次输出 `hello` 、`world`、`smooth`。最后当全部输出完了以后会输出 `done`。
 
 ```
-print = `(a)=>console.log(a)`
+Zepto = `Zepto`;
 
-delay = `(ms)=>(f)=>setTimeout(f,ms)`
-mkasync = `(job)=>(f)=>{job();f()}`
-async f g = f g
+print line = console.html (text + line + '\n')
+    where {
+        console = (Zepto '#console-content');
+        text = console.html <& [];
+    };
 
-asyncPrint str = mkasync \_ -> print str
+delay ms f = `setTimeout` <& [f, ms];
 
-asyncJob = with async do
-     delay 1000
-     asyncPrint "hello"
-     delay 1000
-     asyncPrint "world" 
-     delay 1000
-     asyncPrint "smooth" 
+mkAsync f g = g $ f _;
 
-main _ =
-     asyncJob $ \_ -> print "done"
+get url f = Zepto.get <& [url, f];
+async f g = f g;
+
+asyncJob = @async {
+  @async {
+    delay 1000;
+    mkAsync \_ -> print 'Welcome';
+    delay 1000;
+    mkAsync \_ -> print 'to';
+    delay 1000;
+    mkAsync \_ -> print 'Smooth';
+    delay 1000;
+    mkAsync \_ -> print 'World';
+  };
+  example_code <- get 'javascripts/example.sm';
+  mkAsync \_ -> print example_code;
+  delay 1000;
+  mkAsync \_ -> print 'done';
+};
+
+main = asyncJob \_ -> print 'done';
 ```
 
 Smooth 中的 do...with 不限于解决 JavaScript 中的异步问题，其本质就是一个简单的 CPS 变幻。在 Haskell 中，do 语法糖主要作用是用来 bind monad。
