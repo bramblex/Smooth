@@ -127,9 +127,8 @@ whitespaces                             ([\ \t\f\n])+
 %left '*' '/' '%' '**' 
 %left '<<<' '>>>'
 %left '<&' '&>'
-%left '.' 
-
 %left APPLY
+%left '.' 
 
 %{
     var AST = require('./SmoothAST');
@@ -191,7 +190,7 @@ binding
     { $$ = AST.Binding($1, $2.reduceRight(function(expr, arg){
          return AST.Expr.Lam(arg, expr)}, $4)) }
   | binding where '{' binding_list '}'
-    { $$ = AST.Binding($.name, AST.Expr.LetIn($4, $expr)) }
+    { $$ = AST.Binding($1.name, AST.Expr.LetIn($4, $1.expr)) }
   ;
 
 binding_list
@@ -314,8 +313,8 @@ atom
   : NAME                        { $$ = AST.Expr.ID($1) }
   | expr '.' NAME               { $$ = AST.Expr.Attr($1, $3) }
   | '(' expr ')'                { $$ = $2 }
-  | '[' array_items ']'         { $$ = AST.Expr.Array($2) }
-  | '{' object_items '}'        { $$ = AST.Expr.Object($2) }
+  | '[' array_items ']'         { $$ = AST.Expr.Array($2 || []) }
+  | '{' object_items '}'        { $$ = AST.Expr.Object($2 || []) }
   | literal                     { $$ = $1 }
   ;
 
