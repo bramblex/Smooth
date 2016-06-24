@@ -189,8 +189,13 @@ binding
   | NAME argument_list '=' expr
     { $$ = AST.Binding($1, $2.reduceRight(function(expr, arg){
          return AST.Expr.Lam(arg, expr)}, $4)) }
-  | binding where '{' binding_list '}'
-    { $$ = AST.Binding($1.name, AST.Expr.LetIn($4, $1.expr)) }
+
+  | NAME '=' expr where '{' binding_list '}'
+    { $$ = AST.Binding($1, AST.Expr.LetIn($4, $3)) }
+
+  | NAME argument_list '=' expr where '{' binding_list '}'
+    { $$ = AST.Binding($1, $2.reduceRight(function(expr, arg){
+         return AST.Expr.Lam(arg, expr)}, AST.Expr.LetIn($7, $4))) }
   ;
 
 binding_list
