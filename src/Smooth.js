@@ -165,22 +165,28 @@ case 23:
       if ( last.type !== 'call' ){
          parser.parseError('Parse error on line ' + (yylineno + 1) + ': The last statement in do block must be an expression' ,{});
       } else {
-        this.$ = init.reduceRight(function(expr, dostat){
-          switch (dostat.type){
-            case 'let':
-              return AST.Expr.LetIn([dostat.binding], expr)
-            case 'ass':
-              return AST.Expr.App(
-                     AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
-                     AST.Expr.Lam(dostat.name, expr))
-            case 'call':
-              return AST.Expr.App(
-                     AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
-                     AST.Expr.Lam('_', expr))
-          };
-        }, AST.Expr.App(last.expr, AST.Expr.ID('NEXT$')));
 
-        this.$ = AST.Expr.Lam('NEXT$', this.$);
+        if (init.length > 0){
+          this.$ = init.reduceRight(function(expr, dostat){
+            switch (dostat.type){
+              case 'let':
+                return AST.Expr.LetIn([dostat.binding], expr)
+              case 'ass':
+                return AST.Expr.App(
+                      AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
+                      AST.Expr.Lam(dostat.name, expr))
+              case 'call':
+                return AST.Expr.App(
+                      AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
+                      AST.Expr.Lam('_', expr))
+            };
+          }, AST.Expr.App(
+            AST.Expr.App(AST.Expr.ID($$[$0-3]), last.expr)
+            , AST.Expr.ID('NEXT$')));
+          this.$ = AST.Expr.Lam('NEXT$', this.$);
+        } else {
+          this.$ = last.expr;
+        };
       };
     
 break;

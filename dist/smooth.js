@@ -211,22 +211,28 @@
 	      if ( last.type !== 'call' ){
 	         parser.parseError('Parse error on line ' + (yylineno + 1) + ': The last statement in do block must be an expression' ,{});
 	      } else {
-	        this.$ = init.reduceRight(function(expr, dostat){
-	          switch (dostat.type){
-	            case 'let':
-	              return AST.Expr.LetIn([dostat.binding], expr)
-	            case 'ass':
-	              return AST.Expr.App(
-	                     AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
-	                     AST.Expr.Lam(dostat.name, expr))
-	            case 'call':
-	              return AST.Expr.App(
-	                     AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
-	                     AST.Expr.Lam('_', expr))
-	          };
-	        }, AST.Expr.App(last.expr, AST.Expr.ID('NEXT$')));
 
-	        this.$ = AST.Expr.Lam('NEXT$', this.$);
+	        if (init.length > 0){
+	          this.$ = init.reduceRight(function(expr, dostat){
+	            switch (dostat.type){
+	              case 'let':
+	                return AST.Expr.LetIn([dostat.binding], expr)
+	              case 'ass':
+	                return AST.Expr.App(
+	                      AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
+	                      AST.Expr.Lam(dostat.name, expr))
+	              case 'call':
+	                return AST.Expr.App(
+	                      AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
+	                      AST.Expr.Lam('_', expr))
+	            };
+	          }, AST.Expr.App(
+	            AST.Expr.App(AST.Expr.ID($$[$0-3]), last.expr)
+	            , AST.Expr.ID('NEXT$')));
+	          this.$ = AST.Expr.Lam('NEXT$', this.$);
+	        } else {
+	          this.$ = last.expr;
+	        };
 	      };
 	    
 	break;
@@ -1106,12 +1112,6 @@
 	    this.name = name;
 	};
 
-	Expr.Native = function(name){
-	    if( !(this instanceof arguments.callee) )
-	        return new arguments.callee(name);
-	    this.name = name;
-	};
-
 	Expr.Attr = function(expr, attr){
 	    if( !(this instanceof arguments.callee) )
 	        return new arguments.callee(expr, attr);
@@ -1167,13 +1167,9 @@
 
 	    var smArg = function(name){
 	        switch (name){
-	        case '_': return '$SM_IGNORE$';
+	        case '_': return '$SM$IGNORE$';
 	        default:  return '$SM$'+name;
 	        };
-	    };
-
-	    var smNative = function(name){
-	        return '$SM_NATIVE$' + name;
 	    };
 
 	    if (node instanceof AST.Binding) {
@@ -1232,9 +1228,6 @@
 	    }
 	    else if (node instanceof AST.Expr.ID) {
 	        return smID(node.name);
-	    }
-	    else if (node instanceof AST.Expr.Native) {
-	        return smNative(node.name);
 	    }
 	    else if (node instanceof AST.Expr.Attr) {
 	        return compile(node.expr) + '.' + node.attr;
