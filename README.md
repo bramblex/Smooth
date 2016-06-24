@@ -1,5 +1,7 @@
 # Smooth
 
+*README.md 已过期*
+
 ## 简介
 
 可以在此处试用 [Git Page 传送门](http://bramblex.github.io/Smooth/)。
