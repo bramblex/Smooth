@@ -67,7 +67,9 @@ module.exports = function (node){
         case '!=' : return compile(node.left) + '!==' + '(' + compile(node.right) + ')';
         case '==' : return compile(node.left) + '===' + '(' + compile(node.right) + ')';
         case '>>>' : return '(function(f){return function(g){return function(x){return f(g(x))}}})(' + compile(node.left) + ')(' + compile(node.right)+ ')';
+
         case '<<<' : return '(function(g){return function(f){return function(x){return f(g(x))}}})(' + compile(node.left) + ')(' + compile(node.right)+ ')';
+
         default: return compile(node.left) + node.op + '(' + compile(node.right) + ')';
         };
     }
@@ -76,6 +78,9 @@ module.exports = function (node){
     }
     else if (node instanceof AST.Expr.Attr) {
         return compile(node.expr) + '.' + node.attr;
+    }
+    else if (node instanceof AST.Expr.Call) {
+        return compile(node.expr) + '(' + node.args.content.map(compile).join(',') + ')';
     }
     else if (node instanceof AST.Expr.Val) {
         return '('+ node.val +')';

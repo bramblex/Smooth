@@ -106,6 +106,13 @@ Expr.ID = function(name){
     this.name = name;
 };
 
+Expr.Call = function(expr, args){
+    if( !(this instanceof arguments.callee) )
+        return new arguments.callee(expr, args);
+    this.expr = expr;
+    this.args = args;
+};
+
 Expr.Attr = function(expr, attr){
     if( !(this instanceof arguments.callee) )
         return new arguments.callee(expr, attr);

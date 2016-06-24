@@ -68,6 +68,7 @@ symbols                                 "="|"->"|"<-"|":"|","|"\\"|"@"|";"
 brackets                                "("|")"|"["|"]"|"{"|"}"
 
 operators                               "."|
+                                        "<&"|"&>"|
                                         "<<<"|">>>"|
                                         "*"|"/"|"%"|"**"|
                                         "+"|"-" 
@@ -125,6 +126,7 @@ whitespaces                             ([\ \t\f\n])+
 %left '+' '-' 
 %left '*' '/' '%' '**' 
 %left '<<<' '>>>'
+%left '<&' '&>'
 %left '.' 
 
 %left APPLY
@@ -265,6 +267,26 @@ expr
   | expr '**' expr              { $$ = AST.Expr.Op($2, $1, $3) }
   | expr '<<<' expr             { $$ = AST.Expr.Op($2, $1, $3) }
   | expr '>>>' expr             { $$ = AST.Expr.Op($2, $1, $3) }
+
+
+  | expr '<&' expr
+    {
+      if ( $3 instanceof AST.Expr.Array ){
+         $$ = AST.Expr.Call($1, $3);
+      }else{
+         parser.parseError('Parse error on line ' + (yylineno + 1) + ': The left expr of op "<&" must be an array!' ,{});
+      };
+    }
+
+  | expr '&>' expr
+    {
+      if ( $1 instanceof AST.Expr.Array ){
+         $$ = AST.Expr.Call($3, $1);
+      }else{
+         parser.parseError('Parse error on line ' + (yylineno + 1) + ': The right expr of op "<&" must be an array!' ,{});
+      };
+    }
+    
   ;
 
 do_stat_list
