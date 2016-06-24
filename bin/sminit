@@ -1,9 +1,11 @@
 #!/bin/bash
 
-[[ -z $1 ]] && echo 'Usage: sminit <project name>' && exit 1
+[[ -z ${1} ]] && echo 'Usage: sminit <project name>' && exit 1
+
+[[ ! -z $(ls -A) ]] && echo 'Directory isnot empty.' && exit 1
 
 mkdir src
-echo -e 'exports.print = function(){\  return console.log("hello world")\n};' > src/hello.js
+echo -e 'exports.print = function(){\n  return console.log("hello world")\n};' > src/hello.js
 echo -e 'import "./hello" as hello;\nexport(main);\n\nmain _ = hello.print _ ;' > src/main.sm
 mkdir output
 echo "require('./src/main').main()" > output/index.js
@@ -28,4 +30,10 @@ syncdir:
 
 \$(JS_TARGET): \$(JS_SRC)
 \tcp \$< \$@
+
+.PHONY: clean
+
+clean:
+\t-rm -rf output/src
+\t-rm dist/*
 " > makefile
