@@ -2,7 +2,7 @@
 
 var fs = require('fs');
 var path = require('path');
-var Smooth = require('./Smooth');
+var Smooth = require('./Smooth.node');
 var source_path = process.argv[2];
 var target_path = process.argv[3];
 
