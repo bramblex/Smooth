@@ -258,7 +258,9 @@
 	                     AST.Expr.App(AST.Expr.ID($$[$0-3]), dostat.expr),
 	                     AST.Expr.Lam('_', expr))
 	          };
-	        }, last.expr);
+	        }, AST.Expr.App(last.expr, AST.Expr.ID('NEXT$')));
+
+	        this.$ = AST.Expr.Lam('NEXT$', this.$);
 	      };
 	    
 	break;
@@ -844,7 +846,7 @@
 	break;
 	case 12:
 	                                          var str = yy_.yytext
-	                                              .substr(3, yy_.yytext.length-6)
+	                                              .substr(1, yy_.yytext.length-2)
 	                                          yy_.yytext = str
 	                                          return 70
 	                                        
@@ -853,7 +855,7 @@
 	break;
 	}
 	},
-	rules: [/^(?:$)/,/^(?:(([\ \t\f\n])+))/,/^(?:(#[^\n]*))/,/^(?:((as|case|of|if|than|else|import|let|in|where|break|continue|export|return|switch|while|default\b)\b|(=|->|<-|:|,|\\|@|;)|(\(|\)|\[|\]|\{|\})|(\.|<<<|>>>|\*|\/|%|\*\*|\+|->|<|>=|<=|==|!=|\|\||&&|\$)))/,/^(?:(((([0-9])+|((([0-9])*(\.([0-9])+))|(([0-9])+\.)))([e|E][\+|\-]([0-9])+))|((([0-9])*(\.([0-9])+))|(([0-9])+\.))))/,/^(?:(0[b|B](([0|1])+)))/,/^(?:((([1-9]([0-9])*))|(0[x|X](([0-9])|[a-fA-F])+)|(0[o|O]?([0-7])+)))/,/^(?:(true|false\b))/,/^(?:(null\b))/,/^(?:(undefined\b))/,/^(?:(("(([^\\\n\"])|(\\.))*")|('(([^\\\n\'])|(\\.))*')))/,/^(?:(\/([^\\\n\/]|(\\.))\/))/,/^(?:(```([^\\]|(\\.))*```))/,/^(?:((_|(([a-z])|([A-Z])))((([a-z])|([A-Z]))|([0-9])|_)*))/],
+	rules: [/^(?:$)/,/^(?:(([\ \t\f\n])+))/,/^(?:(#[^\n]*))/,/^(?:((as|case|of|if|than|else|import|let|in|where|break|continue|export|return|switch|while|default\b)\b|(=|->|<-|:|,|\\|@|;)|(\(|\)|\[|\]|\{|\})|(\.|<<<|>>>|\*|\/|%|\*\*|\+|->|<|>=|<=|==|!=|\|\||&&|\$)))/,/^(?:(((([0-9])+|((([0-9])*(\.([0-9])+))|(([0-9])+\.)))([e|E][\+|\-]([0-9])+))|((([0-9])*(\.([0-9])+))|(([0-9])+\.))))/,/^(?:(0[b|B](([0|1])+)))/,/^(?:((([1-9]([0-9])*))|(0[x|X](([0-9])|[a-fA-F])+)|(0[o|O]?([0-7])+)))/,/^(?:(true|false\b))/,/^(?:(null\b))/,/^(?:(undefined\b))/,/^(?:(("(([^\\\n\"])|(\\.))*")|('(([^\\\n\'])|(\\.))*')))/,/^(?:(\/([^\\\n\/]|(\\.))\/))/,/^(?:(`([^\\\n\`]|(\\.))*`))/,/^(?:((_|(([a-z])|([A-Z])))((([a-z])|([A-Z]))|([0-9])|_)*))/],
 	conditions: {"INITIAL":{"rules":[0,1,2,3,4,5,6,7,8,9,10,11,12,13],"inclusive":true},"INCOMMENT":{"rules":[0,1,2,3,4,5,6,7,8,9,10,11,12,13],"inclusive":true}}
 	});
 	return lexer;
@@ -1013,6 +1015,12 @@
 	    this.name = name;
 	};
 
+	Expr.Native = function(name){
+	    if( !(this instanceof arguments.callee) )
+	        return new arguments.callee(name);
+	    this.name = name;
+	};
+
 	Expr.Attr = function(expr, attr){
 	    if( !(this instanceof arguments.callee) )
 	        return new arguments.callee(expr, attr);
@@ -1073,6 +1081,10 @@
 	        };
 	    };
 
+	    var smNative = function(name){
+	        return '$SM_NATIVE$' + name;
+	    };
+
 	    if (node instanceof AST.Binding) {
 	        return [smID(node.name), '=',compile(node.expr)].join(' ');
 	    }
@@ -1129,6 +1141,9 @@
 	    }
 	    else if (node instanceof AST.Expr.ID) {
 	        return smID(node.name);
+	    }
+	    else if (node instanceof AST.Expr.Native) {
+	        return smNative(node.name);
 	    }
 	    else if (node instanceof AST.Expr.Attr) {
 	        return compile(node.expr) + '.' + node.attr;

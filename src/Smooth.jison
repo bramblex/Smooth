@@ -26,8 +26,8 @@ regexpflags                             [gimuy] *
 regexpitem                              [^\\\n\/]|{escapeseq}
 
 /** raw code **/
-rawcode                                 "```"{rawcodeitem}*"```"
-rawcodeitem                             [^\\]|{escapeseq}
+rawcode                                 "`"{rawcodeitem}*"`"
+rawcodeitem                             [^\\\n\`]|{escapeseq}
 
 /** numbers **/
 integer                                 {decinteger}|{hexinteger}|{octinteger}
@@ -105,7 +105,7 @@ whitespaces                             ([\ \t\f\n])+
 
 {rawcode}                               %{
                                           var str = yytext
-                                              .substr(3, yytext.length-6)
+                                              .substr(1, yytext.length-2)
                                           yytext = str
                                           return 'RAWCODE'
                                         %}
@@ -235,7 +235,9 @@ expr
                      AST.Expr.App(AST.Expr.ID($2), dostat.expr),
                      AST.Expr.Lam('_', expr))
           };
-        }, last.expr);
+        }, AST.Expr.App(last.expr, AST.Expr.ID('NEXT$')));
+
+        $$ = AST.Expr.Lam('NEXT$', $$);
       };
     }
 

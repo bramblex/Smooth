@@ -12,7 +12,7 @@ module.exports = function (node){
 
     var smArg = function(name){
         switch (name){
-        case '_': return '$SM_IGNORE$';
+        case '_': return '$SM$IGNORE$';
         default:  return '$SM$'+name;
         };
     };

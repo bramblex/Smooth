@@ -18,6 +18,6 @@ bin/smooth: src/CliWapper.js src/Smooth.js
 	chmod u+x bin/smooth
 
 clean:
-	-rm bin/*
+	-rm bin/smooth
 	-rm dist/*
 	-rm src/Smooth.js
