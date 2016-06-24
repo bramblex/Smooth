@@ -1,0 +1,30 @@
+
+Zepto = `Zepto`;
+Smooth = `Smooth`;
+eval = `eval`;
+editor = `editor`;
+
+print line = console.html (text + line + '\n')
+    where {
+        console = (Zepto '#console-content');
+        text = console.html <& [];
+    };
+
+delay ms f = `setTimeout` <& [f, ms];
+
+mkAsync f g = g $ f _;
+asyncPrint str = mkAsync \_ -> print str;
+
+get url f = Zepto.get <& [url, f];
+
+async f g = f g;
+
+bindClickRun _ = (Zepto '#run').on <& ['click', \_ -> eval $ Smooth.parse (editor.getValue _)];
+
+init = @async {
+  example_code <- get 'javascripts/example.sm';
+  mkAsync \_ -> `editor`.setValue example_code;
+  mkAsync bindClickRun;
+};
+
+main = init \_ -> print 'done';

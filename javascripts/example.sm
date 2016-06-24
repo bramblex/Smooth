@@ -1,0 +1,34 @@
+
+Zepto = `Zepto`;
+
+print line = console.html (text + line + '\n')
+    where {
+        console = (Zepto '#console-content');
+        text = console.html <& [];
+    };
+
+delay ms f = `setTimeout` <& [f, ms];
+
+mkAsync f g = g $ f _;
+
+get url f = Zepto.get <& [url, f];
+async f g = f g;
+
+asyncJob = @async {
+  @async {
+    delay 1000;
+    mkAsync \_ -> print 'Welcome';
+    delay 1000;
+    mkAsync \_ -> print 'to';
+    delay 1000;
+    mkAsync \_ -> print 'Smooth';
+    delay 1000;
+    mkAsync \_ -> print 'World';
+  };
+  example_code <- get 'javascripts/example.sm';
+  mkAsync \_ -> print example_code;
+  delay 1000;
+  mkAsync \_ -> print 'done';
+};
+
+main = asyncJob \_ -> print 'done';
