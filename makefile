@@ -2,22 +2,20 @@
 
 all: dist/smooth.js bin/smooth
 
-src/Smooth.jison: src/SmoothAST.js src/SmoothCompiler.js
-
 src/Smooth.web.js: src/Smooth.jison
 	cd src && jison Smooth.jison -m amd -o Smooth.web.js
 
 src/Smooth.node.js: src/Smooth.jison
 	cd src && jison Smooth.jison -o Smooth.node.js
 
-dist/smooth.js: src/Smooth.web.js
+dist/smooth.js: src/Smooth.web.js src/SmoothAST.js src/SmoothCompiler.js
 	-rm dist/smooth.js
 	webpack src/Smooth.web.js  --config config/webpack.web.js --output-filename dist/smooth.js.tmp
 	echo 'var Smooth = ' >> dist/smooth.js
 	cat dist/smooth.js.tmp >> dist/smooth.js
 	rm dist/smooth.js.tmp
 
-bin/smooth: src/CliWapper.js src/Smooth.node.js
+bin/smooth: src/CliWapper.js src/Smooth.node.js src/SmoothAST.js src/SmoothCompiler.js
 	-rm bin/smooth
 	webpack src/CliWapper.js --config config/webpack.node.js --output-filename bin/smooth.tmp
 	echo '#!/usr/bin/env node' >> bin/smooth
