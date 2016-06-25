@@ -11,7 +11,7 @@ src/Smooth.node.js: src/Smooth.jison
 dist/smooth.js: src/Smooth.web.js src/SmoothAST.js src/SmoothCompiler.js
 	-rm dist/smooth.js
 	webpack src/Smooth.web.js  --config config/webpack.web.js --output-filename dist/smooth.js.tmp
-	echo 'var Smooth = ' >> dist/smooth.js
+	echo -n 'window.Smooth = ' >> dist/smooth.js
 	cat dist/smooth.js.tmp >> dist/smooth.js
 	rm dist/smooth.js.tmp
 
