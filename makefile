@@ -8,9 +8,9 @@ src/Smooth.web.js: src/Smooth.jison
 src/Smooth.node.js: src/Smooth.jison
 	cd src && jison Smooth.jison -o Smooth.node.js
 
-dist/smooth.js: src/Smooth.web.js src/SmoothAST.js src/SmoothCompiler.js
+dist/smooth.js:src/WebWapper.js src/Smooth.web.js src/SmoothAST.js src/SmoothCompiler.js
 	-rm dist/smooth.js
-	webpack src/Smooth.web.js  --config config/webpack.web.js --output-filename dist/smooth.js
+	webpack src/WebWapper.js  --config config/webpack.web.js --output-filename dist/smooth.js
 
 bin/smooth: src/CliWapper.js src/Smooth.node.js src/SmoothAST.js src/SmoothCompiler.js
 	-rm bin/smooth
