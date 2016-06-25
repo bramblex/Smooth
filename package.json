@@ -2,7 +2,7 @@
   "name": "smooth",
   "version": "0.0.1",
   "description": "A simple functional language target to JavaScript",
-  "main": "dist/smooth.js",
+  "main": "src/Smooth.js",
   "directories": {
     "example": "example"
   },
