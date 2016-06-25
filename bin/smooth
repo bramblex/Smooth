@@ -1114,11 +1114,10 @@
 	        return [smID(node.name), '=',compile(node.expr)].join(' ');
 	    }
 	    else if (node instanceof AST.Module) {
-	        return [
-	            node.imports.map(function(n){return compile(n);}).join(';'),
-	            node.bindings.map(function(n){return compile(n);}).join(';'),
-	            node.exports.map(function(n){return compile(n);}).join(';')
-	        ].join(';');
+	        return [].concat(node.imports)
+	            .concat(node.bindings)
+	            .concat(node.exports)
+	            .map(compile).join(';');
 	    }
 	    else if (node instanceof AST.Module.ImportAs) {
 	        return ['var', smID(node.name), '=', 'require(' + node.path + ')'].join(' ');
