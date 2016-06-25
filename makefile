@@ -10,10 +10,7 @@ src/Smooth.node.js: src/Smooth.jison
 
 dist/smooth.js: src/Smooth.web.js src/SmoothAST.js src/SmoothCompiler.js
 	-rm dist/smooth.js
-	webpack src/Smooth.web.js  --config config/webpack.web.js --output-filename dist/smooth.js.tmp
-	echo -n 'window.Smooth = ' >> dist/smooth.js
-	cat dist/smooth.js.tmp >> dist/smooth.js
-	rm dist/smooth.js.tmp
+	webpack src/Smooth.web.js  --config config/webpack.web.js --output-filename dist/smooth.js
 
 bin/smooth: src/CliWapper.js src/Smooth.node.js src/SmoothAST.js src/SmoothCompiler.js
 	-rm bin/smooth
